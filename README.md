@@ -1,2 +1,39 @@
 # transpy
 Transforming "old" Python code to 3.10+
+
+# First task
+Detect and transform the most basic case:
+```python
+
+if number == 0:
+    print("Nothing")
+elif number == 1:
+    print("Alone and afraid")
+elif number == 2:
+    print(".. and make it double!")
+elif ...
+else:
+    print(f"The answer to life, the universe, and everything: {number}!")
+
+```  
+Into something like this: ~~Wish it had syntax highlighting~~
+
+```python
+
+match number:
+    case 0:
+        print("Nothing")
+    case 1:
+        print("Alone and afraid")
+    case 2:
+        print(".. and make it double!")
+    case ...
+    case x:
+        print(f"The answer to life, the universe, and everything: {x}!")
+
+```  
+## How I plan to do it:
+1. Analyze the source:
+    1. Using ast.NodeVisitor visit every *If* node. 
+    2. Since *elif* clauses appear as extra *If* nodes within the *orelse* section of the previous node, I will need to somehow check the "depth" of the main *If* node. 
+    3. In this case, I will also have to make sure, that the *test* sections look something like this: *Name* *Eq* *Constant* where the id of the *Name* node should be equal in all the *test* nodes.
