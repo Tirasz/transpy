@@ -1,6 +1,16 @@
 import ast
 
 
+def get_var_const_from_if(node):
+    #Returns false if the If-node's test is not either in the form 'id == constant' or 'constant == id'
+    #Returns a tuple of (id,const)
+    match node.test:
+        case ast.Compare(left=ast.Name(id=var_id, ctx = _), ops =[ast.Eq()], comparators=[ast.Constant(const)]) | ast.Compare(left=ast.Constant(const), ops =[ast.Eq()], comparators=[ast.Name(id=var_id, ctx = _)]):
+            return (var_id, const)
+        case _:
+            return False
+
+
 class Analyzer(ast.NodeVisitor):
     def __init__(self):
         self.save_file = open("to_transform.py", "w")
@@ -12,21 +22,14 @@ class Analyzer(ast.NodeVisitor):
     def save_code(self, node, start, end):
         self.save_file.write(f"# {start} - {end}\n" + ast.unparse(node) + "\n")
 
-    def get_var_from_if(self, node):
-        #Returns false if the If-node's test is not either in the form 'id == constant' or 'constant == id'
-        #Returns the variable's id (name) otherwise
-        match node.test:
-            case ast.Compare(left=ast.Name(id=var_id, ctx = _), ops =[ast.Eq()], comparators=[ast.Constant(_)]) | ast.Compare(left=ast.Constant(_), ops =[ast.Eq()], comparators=[ast.Name(id=var_id, ctx = _)]):
-                return var_id
-            case _:
-                return False
+ 
 
     def visit_If(self, node):
         #print(f"## Found and If, at line number: {node.lineno} ##")
         variable_id = ""
         last_line = -1
 
-        variable_id = self.get_var_from_if(node)
+        variable_id = get_var_const_from_if(node)[0]
         if not variable_id:
             return
 
@@ -36,7 +39,7 @@ class Analyzer(ast.NodeVisitor):
         while len(current.orelse) and isinstance(current.orelse[0], ast.If):
             depth += 1
             current = current.orelse[0]
-            if not self.get_var_from_if(current) == variable_id:
+            if not get_var_const_from_if(current)[0] == variable_id:
                 return
 
             
