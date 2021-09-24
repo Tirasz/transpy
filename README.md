@@ -6,14 +6,14 @@ Detect and transform the most basic case:
 ```python
 
 if number == 0:
-    print("Nothing")
+    ...
 elif number == 1:
-    print("Alone and afraid")
+    ...
 elif number == 2:
-    print(".. and make it double!")
+    ...
 elif ...
 else:
-    print(f"The answer to life, the universe, and everything: {number}!")
+   ...
 
 ```  
 Into something like this: ~~Wish it had syntax highlighting~~
@@ -22,14 +22,14 @@ Into something like this: ~~Wish it had syntax highlighting~~
 
 match number:
     case 0:
-        print("Nothing")
+        ...
     case 1:
-        print("Alone and afraid")
+        ...
     case 2:
-        print(".. and make it double!")
+        ...
     case ...
     case x:
-        print(f"The answer to life, the universe, and everything: {x}!")
+        ...
 
 ```  
 ## How I plan to do it:
