@@ -47,4 +47,15 @@ match number:
             2. *MatchAs()* (else: )
         3. And their *body* should be equal to their corresponding *If* node's body
         4. Set the *Match* node's cases to be equal to a list of the previous *match_case*'s
+4. Merge the transformed code with the source code, replacing the old structures with the transformed ones. 
+    1. Maybe this way I can minimize the collateral damage that ast.unparse can potentially cause.
+
+## How to try:
+0. Make sure you are using a Python 3.10+ interpeter.
+1. Dump all the files in the repo into a folder.
+2. Make a test.py, fill it with test cases.
+3. Run 'python analyzer.py'
+4. Check newly made 'to_transform.py' file to see if it recognized the correct cases.
+5. Run 'python transformer.py'
+6. Check newly made 'transformed.py' file to see if it correctly transformed the structures.
     
