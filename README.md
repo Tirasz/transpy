@@ -46,8 +46,8 @@ match number:
             1. *MatchValue(value = Constant())* (elif ...: )
             2. *MatchAs()* (else: )
         3. And their *body* should be a list of nodes found either in:
-            1. The node's *body* section (elif ...:)
-            2. The node's *orelse* section (else ...:)
+            1. The *If* node's *body* section (elif ...:)
+            2. The *If* node's *orelse* section (else ...:)
         4. Set the *Match* node's cases to be equal to a list of the *match_cases*
 4. Merge the transformed code with the source code, replacing the old structures with the transformed ones. 
     1. Maybe this way I can minimize the collateral damage that ast.unparse can potentially cause.
