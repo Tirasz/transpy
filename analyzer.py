@@ -46,7 +46,7 @@ def get_branches(node):
 class Analyzer(ast.NodeVisitor):
     def __init__(self):
         self.save_file = open("to_transform.py", "w")
-        self.valid_nodes = []
+        
 
     def __del__(self):
         self.save_file.close()
