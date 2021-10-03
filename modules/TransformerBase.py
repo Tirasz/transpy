@@ -2,6 +2,8 @@ import abc
 import ast
 from collections.abc import Sequence
 
+MIN_BRANCHES = 4
+
 class TransformerBase(metaclass=abc.ABCMeta):
     """
     Defines an interface for a transformer module. 
