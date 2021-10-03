@@ -1,12 +1,5 @@
 import ast
 
-
-
-
-
-
-
-
 class Analyzer(ast.NodeVisitor):
     def __init__(self):
         self.save_file = open("to_transform.py", "w")
@@ -23,7 +16,6 @@ class Analyzer(ast.NodeVisitor):
     def visit_If(self, node):
         print(f"## Found and If, at line number: {node.lineno} ##")
         
-                
         # The last line is equal to the last node in the body of the last branch
         # This might need to be refactored
         last_line = branches[-1][1][-1].lineno        
