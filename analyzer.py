@@ -21,26 +21,7 @@ def get_var_const(node):
             return False
 
 
-def get_branches(node):
-    # Returns a list of (test, body) tuples for each branch of the given 'If' node
-    # On 'else:' blocks with no 'test', returns (0, [nodes])
 
-    if not isinstance(node, ast.If):
-        raise ValueError(f"Cannot get branches for type: ({node.__class__.__name__})!")
-    branches = []
-    current = node
-
-    while(True):
-        branches.append((current.test, current.body))
-        #The 'orelse' of an 'If' node can be: 
-        match current.orelse:
-            case []: # an empty list, if there are no more branches
-                return branches
-            case [ast.If(test=_, body=_, orelse=_)]: # an 'If' node if there is another branch
-                current = current.orelse[0]
-            case [*nodes]: # can be a list of nodes, if its the last 'else:' block
-                branches.append((0, nodes))
-                return branches
 
 
 class Analyzer(ast.NodeVisitor):
