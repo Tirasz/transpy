@@ -1,14 +1,13 @@
 import abc
 import ast
-from collections.abc import Sequence
 
 MIN_BRANCHES = 4
 
 class TransformerBase(metaclass=abc.ABCMeta):
     """
-    Defines an interface for a transformer module. 
+    Defines an interface for a transformer plugin. 
     Every transformer should implement a visit(node), and a transform(node) method.
-    visit(node): Analyzes the node, and determines if it can be transformed by the module. Returns a boolean.
+    visit(node): Analyzes the node, and determines if it can be transformed. Returns a boolean.
     transform(node): Returns the transformed node. 
     """
     @classmethod
@@ -27,14 +26,12 @@ class Branch:
 
 def get_branches(node) :
     # Returns a list of Branches for each branch of the given 'If' node
-
     if not isinstance(node, ast.If):
         raise ValueError(f"Cannot get branches for type: ({node.__class__.__name__})!")
+
     branches = []
     current = node
-
     while(True):
-        #branches.append((current.test, current.body))
         branches.append(Branch(current.body, current.test))
         #The 'orelse' of an 'If' node can be: 
         match current.orelse:
