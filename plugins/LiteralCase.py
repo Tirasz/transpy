@@ -43,7 +43,7 @@ class LiteralCase:
         # We also know that every branch has a test of the form 'id == constant' or 'constant == id'
         branches = get_branches(node)
         for branch in branches:
-            curr_pattern = ast.MatchValue(value = ast.Constant(get_var_const(branch.test)[1])) if branch.test != 0 else ast.MatchAs()
+            curr_pattern = ast.MatchValue(value = ast.Constant(get_var_const(branch.test)[1])) if branch.test is not None else ast.MatchAs()
             cases.append(ast.match_case(pattern = curr_pattern, body = branch.body))
 
         return ast.Match(subject = subject, cases = cases)
