@@ -52,3 +52,25 @@ match number:
 4. Merge the transformed code with the source code, replacing the old structures with the transformed ones. 
     1. Maybe this way I can minimize the collateral damage that ast.unparse can potentially cause.
 
+
+# Second task
+More complex cases:
+```python
+
+if number == 0 or number == 1 or ...:
+    ...
+elif not number == 1:
+    ...
+elif number > 5:
+    ...
+elif number is not None:
+    ...
+else:
+   ...
+
+```  
+
+Basically I need a way to handle keywords: '[not], [or], [and], [is not]', and comparators other than ['=='], like '[>], [<], etc.'
+'or' & 'and' are both 'BoolOp'-s. 'BoolOp'-s have an operator ('and' & 'or'), and a list of values. Consecutive operations with the same operators are collapsed into one 'BoolOp'.
+e.g: x or y or z --> BoolOp(Or, x,y,z)
+
