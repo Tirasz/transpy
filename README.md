@@ -54,14 +54,14 @@ match number:
 
 
 # Second task
-More complex cases:
+More complex (literal) cases:
 ```python
 
 if number == 0 or number == 1 or ...:
     ...
 elif not number == 1:
     ...
-elif number > 5:
+elif number == 7 or number > 5:
     ...
 elif number is not None:
     ...
@@ -71,6 +71,65 @@ else:
 ```  
 
 Basically I need a way to handle keywords: '[not], [or], [and], [is not]', and comparators other than ['=='], like '[>], [<], etc.'
-'or' & 'and' are both 'BoolOp'-s. 'BoolOp'-s have an operator ('and' & 'or'), and a list of values. Consecutive operations with the same operators are collapsed into one 'BoolOp'.
-e.g: x or y or z --> BoolOp(Or, x,y,z)
 
+
+## OR-patterns
+In a match statemenet, we can combine multiple patterns in one case, so that if at least one pattern matches, the whole pattern matches.  
+The alternative patterns can bind variables, as long as they all bind the same set of variables (excluding _ ).  
+Using OR-patterns, it is possible to transform something like this:  
+```python 
+if number == 1 or number == 2 or number == 4:
+    ...
+elif number == 5 or number == 6 or number == 8:
+    ...
+```
+Into:
+```python
+match number:
+    case 1 | 2 | 4:
+        ...
+    case 5 | 6 | 8:
+        ...
+```
+## Guards
+In a match statement, we can add a 'Guard' for every case. The case branch is only taken, if the 'Guard' evaluates to True.  
+The 'Guard' is only evaluated after a succesful match.  
+It's very important ~~and a bit confusing~~ , that there is no back-tracking in pattern matching.  
+So if there is a match, but the guard fails, the case is skipped, and no other potential matches are tested in the case.  
+(https://ncik-roberts.github.io/posts/pep622.html)  
+Using Guards, it is possible to transform something like this:  
+```python 
+if number == 0:
+    ...
+elif number < 0:
+    ...
+elif number >= 1:
+    ...
+```
+Into:
+```python 
+match number:
+    case 0:
+        ...
+    case x if x < 0:
+        ...
+    case x if x >= 1:
+        ....
+```
+## Dealing with '[and]'
+Since we are still talking about literal cases, (with a subject, and only literals to compare to)  
+I think 'and'-s are already used kind of like 'Guards'. What i mean is:  
+- If we are checking for equality, then it doesn't make much sense to also check for another one, like ```if x == 4 and x == 5```
+    - Therefore the only reason to use 'and' in a case like this is to "Guard" against something, for e.g.: ```if isinstance(x, int) and x == 5``` or ```if x == 5 and (bool_expression)```
+    - This means, after identifying the actual literal cases to match against, i should be able to just take the "remaining expressions" and put it in the case Guard. 
+    - For eg:
+    ```python
+        if (x == 1 or x == 2 or x == 3) and (bool_expr):
+            ...
+    ```
+    The literal cases are ```1 | 2 | 3``` and the Guard will be the "remaining": ```(bool_expr)```
+- If we are comparing to a literal, then the whole thing is already getting put into the Guard. 
+    - So something like ``` if x > 0 and x < 100``` can be turned into ``` case x if x > 0 and x < 100```.
+
+Now, I'm going to be honest, I have absolutely no idea how to even begin implementing this.  
+I also have no idea how to deal with cases like ```if something or something and something or something and (something and something or something)....``` 
