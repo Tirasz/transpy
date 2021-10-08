@@ -192,7 +192,7 @@ match a:
 ```
 
 ### The root is ```BoolOp(AND, values)```
-The root of the If node's test is an ``` BoolOp(AND, values) ``` node only if:  
+The root of the If node's test is a ``` BoolOp(AND, values) ``` node only if:  
 - The test contains no ```or``` operators
 - Or if it contains them, they are parenthesized, and are separated with ```and```-s.
   
@@ -213,7 +213,7 @@ In any other case, its the ugly way again:
 if (x <= 100 or x > 1000) and boolexp(x)
 ```
 Has to be turned into:
-```
+```python
 match x:
     case _ if (x <= 100 or x > 1000) and boolexp(x)
 ```
