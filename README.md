@@ -142,8 +142,9 @@ Looks something like this in the AST:
 ```python 
 BoolOp(OR, [a, b, BoolOp(AND, c, d)])
 ```
+### The root is ```BoolOp(OR, values)```  
 
-This means, that in most cases, the root of an If-node's test will be a ``` ast.BoolOp(OR, [values]) ``` node.  
+In most cases, the root of an If-node's test will be a ``` ast.BoolOp(OR, [values]) ``` node.  
 This makes analyzing it pretty easy, since all i have to do, is check the list of values.  
 If the values are all ``` ast.Compare(left, ops, ast.Eq())``` nodes, then that means they are checking for equality, which means that I just need to make sure they are all comparing the same subject to a literal.  
 If that's the case, then i can just use the OR-patterns in the match case, like mentioned above.
@@ -190,6 +191,31 @@ match a:
     case x if (x == 0 or x == 1 and some_bool_func(x) or x == 5)
 ```
 
-
+### The root is ```BoolOp(AND, values)```
+The root of the If node's test is an ``` BoolOp(AND, values) ``` node only if:  
+- The test contains no ```or``` operators
+- Or if it contains them, they are parenthesized, and are separated with ```and```-s.
+  
+This pretty much means that the test is in CNF. (i think?)  
+In this case, if i'm able to detect a node in the list of values, that contains valid literal cases ONLY, then i could transform them like so:  
+e.g.: 
+```python 
+if (x == 1 or x == 2 or x == 3) and boolexp(x) 
+```
+Can be turned into:
+```python
+match x:
+    case 1 | 2 | 3 if boolexp(x)
+```
+Basically, the valid cases get put into the case with the OR-pattern, and the rest goes into the case's Guard.
+In any other case, its the ugly way again:  
+```python
+if (x <= 100 or x > 1000) and boolexp(x)
+```
+Has to be turned into:
+```
+match x:
+    case _ if (x <= 100 or x > 1000) and boolexp(x)
+```
 
 
