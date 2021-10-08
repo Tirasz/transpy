@@ -116,20 +116,80 @@ match number:
     case x if x >= 1:
         ....
 ```
-## Dealing with '[and]'
-Since we are still talking about literal cases, (with a subject, and only literals to compare to)  
-I think 'and'-s are already used kind of like 'Guards'. What i mean is:  
-- If we are checking for equality, then it doesn't make much sense to also check for another one, like ```if x == 4 and x == 5```
-    - Therefore the only reason to use 'and' in a case like this is to "Guard" against something, for e.g.: ```if isinstance(x, int) and x == 5``` or ```if x == 5 and (bool_expression)```
-    - This means, after identifying the actual literal cases to match against, i should be able to just take the "remaining expressions" and put it in the case Guard. 
-    - For eg:
-    ```python
-        if (x == 1 or x == 2 or x == 3) and (bool_expr):
-            ...
-    ```
-    The literal cases are ```1 | 2 | 3``` and the Guard will be the "remaining": ```(bool_expr)```
-- If we are comparing to a literal, then the whole thing is already getting put into the Guard. 
-    - So something like ``` if x > 0 and x < 100``` can be turned into ``` case x if x > 0 and x < 100```.
+## Dealing with [and] & [or]
+### BoolOp-s
+In the python AST, the operation 'and' & 'or' are represented with ```ast.BoolOp(op, values)```  
+Where the 'op' can be ```ast.And``` or ```ast.Or```, and the values are the values involved.  
+Consecutive operations with the same operator are collapsed:  
+```if a or b or c ``` gets turned into ```ast.BoolOp(ast.Or,[a,b,c])```  
 
-Now, I'm going to be honest, I have absolutely no idea how to even begin implementing this.  
-I also have no idea how to deal with cases like ```if something or something and something or something and (something and something or something)....``` 
+
+Like most languages, python has the operator precedence (from weakest to strongest):
+```python 
+1. or
+2. and
+3. not x
+4. is not; not in;
+```
+In AST terms, the weakest always goes on the top of the tree, while the strongest are pushed down, since they are getting evaluated first.
+For example: 
+```python 
+if a or b or c and d
+=
+if a or b or (c and d)
+``` 
+Looks something like this in the AST:
+```python 
+BoolOp(OR, [a, b, BoolOp(AND, c, d)])
+```
+
+This means, that in most cases, the root of an If-node's test will be a ``` ast.BoolOp(OR, [values]) ``` node.  
+This makes analyzing it pretty easy, since all i have to do, is check the list of values.  
+If the values are all ``` ast.Compare(left, ops, ast.Eq())``` nodes, then that means they are checking for equality, which means that I just need to make sure they are all comparing the same subject to a literal.  
+If that's the case, then i can just use the OR-patterns in the match case, like mentioned above.
+
+Sadly in any other case, the best I can do is to put the whole test into the Guard.  
+For example, lets say i find an ```ast.Compare(left, ops, ast.Lt()) ``` in the list if values.  
+```python 
+if a == 1 or a == 2 or a < 0:
+   ...
+```
+Then i cant turn it into a match case like:
+```python
+match a:
+    case 1 | 2 | _ if a < 0
+```
+Because how Guards work. If a = 1, it wont match since a is not less than 0, and it wont even check the remaining cases.
+Something like
+```python
+match a:
+    case _ | 1 | 2 if a < 0
+```
+Won't work either, because of the same reason.
+So the only way i can turn it into a match case is:
+```python
+match a:
+    case x if (x == 1 or x == 2 or x < 0:)
+```
+This works, but is also ugly. (Maybe make this kind of transformation optional?)  
+Same thing happens if i find a ``` BoolOp(AND, values) ``` in the list of values.
+```python
+if a == 0 or a == 1 and some_bool_func(a) or a == 5:
+=
+if a == 0 or (a == 1 and some_bool_func(a)) or a == 5:
+```
+Intuitively, i would transform it into:
+```python 
+match a:
+    case 0 | 5 | 1 if some_bool_func(a)
+```
+Which after looking at it for more than 2 seconds is obviously wrong.  
+So the only way in this case is also the ugly way:  
+```python
+match a:
+    case x if (x == 0 or x == 1 and some_bool_func(x) or x == 5)
+```
+
+
+
+
