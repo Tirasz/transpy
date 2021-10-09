@@ -23,6 +23,21 @@ class Branch:
         self.test = test
         self.body = body
 
+class SubjectTransformer(ast.NodeTransformer):
+    '''
+    Replaces the id of every Name node from the given id to a new id
+    '''
+    def __init__(self, subj_name, new_name):
+        self.subj_name = subj_name
+        self.new_name = new_name
+        
+    def visit_Name(self, node):
+        if node.id == self.subj_name:
+            return ast.Name(id = self.new_name, ctx = node.ctx)
+        else:
+            return node
+
+
 
 def get_branches(node) :
     # Returns a list of Branches for each branch of the given 'If' node
