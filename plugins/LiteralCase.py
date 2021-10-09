@@ -143,14 +143,14 @@ class LiteralCase:
         subject = None
         # Checking if all the branches are in correct form and have the same subject
         for branch in branches:
-            print(f"BRANCH: {branch.body[0].lineno -1}")
+            #print(f"BRANCH: {branch.body[0].lineno -1}")
             curr_subject = analyze_test(branch.test)
-            print(f"SUBJECT: {curr_subject}")
+            #print(f"SUBJECT: {curr_subject}")
             if subject == None:
                 subject = curr_subject
             
             if not curr_subject or (subject != curr_subject and curr_subject != "ELSE:"):
-                print(f"NOT VALID IF NODE! CURR SUBJ: {curr_subject}, SUBJECT: {subject}")
+                #print(f"NOT VALID IF NODE! CURR SUBJ: {curr_subject}, SUBJECT: {subject}")
                 return False
             
         return True
@@ -171,7 +171,7 @@ class LiteralCase:
         
         for branch in branches:
             curr_pattern = transform_test(branch.test)
-            print(curr_pattern)
+            #print(curr_pattern)
             cases.append(ast.match_case(pattern = curr_pattern[0], body = branch.body, guard = curr_pattern[1]))
 
         return ast.Match(subject = subject, cases = cases)

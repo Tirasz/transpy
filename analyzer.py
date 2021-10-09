@@ -45,7 +45,9 @@ def main():
     with open("transformed.py", "w") as out:
         for node in analyzer.results.keys():
             print(f"If node at line number [{node.lineno}] can be transformed with plugin: [{analyzer.results[node].__class__.__name__}]")
-            out.write(ast.unparse(analyzer.results[node].transform(node)))
+            out.write("#"+"-"*10 + str(node.lineno) + "-"*10 + "\n")
+            out.write(ast.unparse(analyzer.results[node].transform(node)) + "\n")
+            out.write("#"+"-"*9 +"/"+ str(node.lineno) + "-"*10 + "\n")
         
 
 if __name__ == "__main__":
