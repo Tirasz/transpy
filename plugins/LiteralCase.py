@@ -1,6 +1,6 @@
 import ast
 from typing import Pattern
-from plugins.Base import get_branches, MIN_BRANCHES
+from plugins.Base import get_branches, MIN_BRANCHES, SubjectTransformer
 
 def _get_subject(compare, ops):
     #A compare node is "literal" if its left attribute is:
@@ -64,13 +64,13 @@ def analyze_test(test):
             for node in values:
                 match node:
                     case ast.BoolOp(ast.Or(), [*exprs]):
-                        if foundBoolOr:
+                        if foundBoolOr: # If there are multiple OR-s reject the branch
                             return False
                         best_subj_candidate = get_subject(exprs)
                         foundBoolOr = True
                         #return get_subject(exprs)
                     case _:
-                        if not best_subj_candidate:
+                        if not best_subj_candidate: # If we havent found a subject yet
                             best_subj_candidate = get_subject(node)
                         #return get_subject(node)
             # The only other way is if every expression is literal, with the operators being comparisons
@@ -93,8 +93,39 @@ def transform_test(test):
         case ast.BoolOp(ast.Or(), [*values]):
             #It is guaranteed, that every node in the values is literal
             patterns = []
+            for i in range(len(values)):
+                patterns[i] = ast.MatchValue(value = get_const_node(values[i]))
+            return ast.MatchOr(patterns)
+
+        case ast.BoolOp(ast.And(), [*values]):
+            # values either has a BoolOp(OR) node that is literal, or a single expression that is literal, or every node is semi-literal
+            literal_node = None
             for node in values:
-                curr_pattern = ast.matchValue() 
+                match node:
+                    case ast.BoolOp(ast.Or(), [*exprs]):
+                        if get_subject(exprs): 
+                            literal_node = node
+                            break 
+                    case _:
+                        if not literal_node and get_subject(node):
+                            literal_node = node
+            if literal_node:
+                pass
+
+
+        case None:
+            return ast.MatchAs()
+
+        case expr:
+            literal_subj = get_subject(expr)
+            semi_literal_subj = get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq))
+            if literal_subj:# If the expression is literal
+                return ast.MatchValue(value = get_const_node(expr))
+            elif semi_literal_subj:
+                transformer = SubjectTransformer(semi_literal_subj, "x")
+                return ast.MatchAs(name="x", guard=transformer.visit(expr))
+
+
 
 class LiteralCase:
     def visit(self, node):
