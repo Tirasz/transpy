@@ -42,9 +42,11 @@ def main():
 
     analyzer = Analyzer(load_plugins())    
     analyzer.visit(tree)
-    for node in analyzer.results.keys():
-        print(f"If node at line number [{node.lineno}] can be transformed with plugin: [{analyzer.results[node].__class__.__name__}]")
-    
+    with open("transformed.py", "w") as out:
+        for node in analyzer.results.keys():
+            print(f"If node at line number [{node.lineno}] can be transformed with plugin: [{analyzer.results[node].__class__.__name__}]")
+            out.write(ast.unparse(analyzer.results[node].transform(node)))
+        
 
 if __name__ == "__main__":
 
