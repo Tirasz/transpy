@@ -1,4 +1,5 @@
 import ast
+from typing import Pattern
 from plugins.Base import get_branches, MIN_BRANCHES
 
 def _get_subject(compare, ops):
@@ -21,6 +22,14 @@ def _get_subject(compare, ops):
             return var_id
 
     return False
+
+def get_const_node(compare):
+    # It is guaranteed that the input is a compare node that is literal
+    if isinstance(compare.left, ast.Name):
+        return compare.comparators[0]
+    elif isinstance(compare.comparators[0], ast.Name):
+        return compare.left
+    raise ValueError(f"Cannot get the const node out of: \n {ast.dump(compare)}")
 
 def get_subject(expr, ops = (ast.Eq,)):
     # An expression is literal if it compares a subject to a constant with the ast.Eq operator
@@ -79,7 +88,13 @@ def analyze_test(test):
             return get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Eq, ast.NotEq))
  
         
-
+def transform_test(test):
+    match test:
+        case ast.BoolOp(ast.Or(), [*values]):
+            #It is guaranteed, that every node in the values is literal
+            patterns = []
+            for node in values:
+                curr_pattern = ast.matchValue() 
 
 class LiteralCase:
     def visit(self, node):
@@ -103,15 +118,19 @@ class LiteralCase:
         return True
 
     def transform(self, node):
-        # A match node has a 'subject': Should be a Name node 
-        subject = ast.Name(id=get_var_const(node)[0], ctx=ast.Load())
-        # and a list of 'cases': each case being a 'match_case' Node
-        # a 'match_case' has a 'pattern': in this case, either a MatchValue(value=Constant(x)) or a MatchAs()
-        # and a 'body': This should just be the main 'If' node's body
-        cases = []
-        # Since the analyzer already made sure, that the subject is the same in all branches, we can skip that here
-        # We also know that every branch has a test of the form 'id == constant' or 'constant == id'
         branches = get_branches(node)
+        # A match node has a 'subject': Should be a Name node 
+        # Since the analyzer already made sure, that the subject is the same in all branches, we can skip that here
+        subject = ast.Name(id=analyze_test(branches[0].test), ctx=ast.Load())
+        # and a list of 'cases': each case being a 'match_case' Node
+        # a 'match_case' has a 
+        # - 'pattern': in this case, either a MatchValue(value=Constant(x)), a MatchAs(), or a MatchOr(patterns)
+        # - 'body': This should just be the main 'If' node's body
+        # - 'guard': an optional attribute, contains an expression that will be evaluated if the pattern matches the subject
+        cases = []
+        
+        # We also know that every branch has a test of the form 'id == constant' or 'constant == id'
+        
         for branch in branches:
             curr_pattern = ast.MatchValue(value = ast.Constant(get_var_const(branch.test)[1])) if branch.test is not None else ast.MatchAs()
             cases.append(ast.match_case(pattern = curr_pattern, body = branch.body))
