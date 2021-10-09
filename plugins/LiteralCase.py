@@ -94,8 +94,8 @@ def transform_test(test):
             #It is guaranteed, that every node in the values is literal
             patterns = []
             for i in range(len(values)):
-                patterns[i] = ast.MatchValue(value = get_const_node(values[i]))
-            return ast.MatchOr(patterns)
+                patterns.append(ast.MatchValue(value = get_const_node(values[i])))
+            return (ast.MatchOr(patterns), None)
 
         case ast.BoolOp(ast.And(), [*values]):
             # values either has a BoolOp(OR) node that is literal, or a single expression that is literal, or every node is semi-literal
@@ -110,20 +110,27 @@ def transform_test(test):
                         if not literal_node and get_subject(node):
                             literal_node = node
             if literal_node:
-                pass
+                # If a literal node is found, then we need to put the remaining nodes into guard
+                match_case = transform_test(literal_node)[0]
+                values.remove(literal_node)
+                return (match_case, ast.BoolOp(ast.And(), values))
+            #Guaranteed that every node is semi-literal:
+            subj = get_subject(values, (ast.Lt, ast.LtE, ast.Gt, ast.GtE))
+            transformer = SubjectTransformer(subj, "x")
+            return (ast.MatchAs(name="x"), transformer.visit(ast.BoolOp(ast.And(), values)))
 
 
         case None:
-            return ast.MatchAs()
+            return (ast.MatchAs(), None)
 
         case expr:
             literal_subj = get_subject(expr)
             semi_literal_subj = get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq))
             if literal_subj:# If the expression is literal
-                return ast.MatchValue(value = get_const_node(expr))
+                return (ast.MatchValue(value = get_const_node(expr)), None)
             elif semi_literal_subj:
                 transformer = SubjectTransformer(semi_literal_subj, "x")
-                return ast.MatchAs(name="x", guard=transformer.visit(expr))
+                return (ast.MatchAs(name="x"), transformer.visit(expr))
 
 
 
@@ -163,8 +170,9 @@ class LiteralCase:
         # We also know that every branch has a test of the form 'id == constant' or 'constant == id'
         
         for branch in branches:
-            curr_pattern = ast.MatchValue(value = ast.Constant(get_var_const(branch.test)[1])) if branch.test is not None else ast.MatchAs()
-            cases.append(ast.match_case(pattern = curr_pattern, body = branch.body))
+            curr_pattern = transform_test(branch.test)
+            print(curr_pattern)
+            cases.append(ast.match_case(pattern = curr_pattern[0], body = branch.body, guard = curr_pattern[1]))
 
         return ast.Match(subject = subject, cases = cases)
         
