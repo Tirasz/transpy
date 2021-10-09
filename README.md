@@ -150,7 +150,7 @@ If the values are all ``` ast.Compare(left, ops, ast.Eq())``` nodes, then that m
 If that's the case, then i can just use the OR-patterns in the match case, like mentioned above.
 
 Sadly in any other case, the best I can do is to put the whole test into the Guard.  
-For example, lets say i find an ```ast.Compare(left, ops, ast.Lt()) ``` in the list if values.  
+For example, lets say i find an ```ast.Compare(left, ops, ast.Lt()) ``` in the list of values.  
 ```python 
 if a == 1 or a == 2 or a < 0:
    ...
