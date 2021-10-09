@@ -1,22 +1,84 @@
 import ast
 from plugins.Base import get_branches, MIN_BRANCHES
 
-def get_var_const(node): 
-    #Returns a tuple of (id,const) 
-    #Returns false if the If-node's test is not either in the form 'id == constant' or 'constant == id'
-
-    if not (isinstance(node, ast.If) or isinstance(node, ast.Compare)):
-        raise ValueError(f"Cannot check the 'test' of type: ({node.__class__.__name__})!")
-
-    test = node
-    if(isinstance(node, ast.If)):
-        test = node.test
+def _get_subject(compare, ops):
+    #A compare node is "literal" if its left attribute is:
+    # - A Name node and its comparators atribute is:
+    #       - A single Constant ->(number or string)
+    #       - An UnaryOp whose operator is USub ->(negative number)
+    # - A single Constant ->(number or string) and its comparators attribute is a Name node
+    # - An UnaryOp whose operator is USub ->(negative number) and its comparators attribute is a Name node 
+    # The tuple of accepted operators for the comparator node is the second input
     
+    match compare:
+        case ast.Compare(ast.Name(id=var_id, ctx = _), [comp], [ast.Constant(_)]) if isinstance(comp, ops):
+            return var_id
+        case ast.Compare(ast.Constant(_), [comp], [ast.Name(id=var_id, ctx = _)]) if isinstance(comp, ops):
+            return var_id
+        case ast.Compare(ast.Name(id=var_id, ctx = _), [comp], [ast.UnaryOp(ast.USub(), ast.Constant(_))]) if isinstance(comp, ops):
+            return var_id
+        case ast.Compare(ast.UnaryOp(ast.USub(), ast.Constant(_)), [comp], [ast.Name(id=var_id, ctx = _)]) if isinstance(comp, ops):
+            return var_id
+
+    return False
+
+def get_subject(expr, ops = (ast.Eq,)):
+    # An expression is literal if it compares a subject to a constant with the ast.Eq operator
+    # In case of a list of nodes, like in a BoolOp, the BoolOp is considered literal if all of its values are literal, and have the same subject
+    match expr:
+        case [*nodes]:
+            subject = {}
+            for node in nodes:
+                subj = get_subject(node, ops)
+                if not subj:
+                    return False
+                subject[subj] = 1
+            subject = False if len([*subject]) != 1 else [*subject][0]
+            return subject
+        case node:
+            return _get_subject(node, ops) #!= False
+
+def analyze_test(test):
+    # The root node of the test of a branch can be:
     match test:
-        case ast.Compare(left=ast.Name(id=var_id, ctx = _), ops =[ast.Eq()], comparators=[ast.Constant(const)]) | ast.Compare(left=ast.Constant(const), ops =[ast.Eq()], comparators=[ast.Name(id=var_id, ctx = _)]):
-            return (var_id, const)
-        case _:
-            return False
+        # A list of expressions inside a BoolOp with OR
+        case ast.BoolOp(ast.Or(), [*values]):          
+            # Need to check if every expression is an equality check with the same subject against a constant
+            return get_subject(values)
+
+        # A list of expressions inside a BoolOp with AND
+        case ast.BoolOp(ast.And(), [*values]):          
+            # Need to check if there is a BoolOp(OR) in the list of expressions, that is literal,
+            # or at least single expression that is literal
+            best_subj_candidate = None
+            foundBoolOr = False
+            for node in values:
+                match node:
+                    case ast.BoolOp(ast.Or(), [*exprs]):
+                        if foundBoolOr:
+                            return False
+                        best_subj_candidate = get_subject(exprs)
+                        foundBoolOr = True
+                        #return get_subject(exprs)
+                    case _:
+                        if not best_subj_candidate:
+                            best_subj_candidate = get_subject(node)
+                        #return get_subject(node)
+            # The only other way is if every expression is literal, with the operators being comparisons
+            if not best_subj_candidate:
+                best_subj_candidate = get_subject(values, (ast.Lt, ast.LtE, ast.Gt, ast.GtE))
+            return best_subj_candidate
+
+        # Nothing (else: block)
+        case None:  
+            #print("NONE")
+            return "ELSE:"
+
+        # A single expression
+        case expr: 
+            return get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Eq, ast.NotEq))
+ 
+        
 
 
 class LiteralCase:
@@ -25,11 +87,19 @@ class LiteralCase:
         if len(branches) < MIN_BRANCHES:
             return False 
 
-        subject = get_var_const(node)[0]
-        # Checking if all the branches are in correct form
+        subject = None
+        # Checking if all the branches are in correct form and have the same subject
         for branch in branches:
-            if branch.test is not None and get_var_const(branch.test)[0] != subject:
+            print(f"BRANCH: {branch.body[0].lineno -1}")
+            curr_subject = analyze_test(branch.test)
+            print(f"SUBJECT: {curr_subject}")
+            if subject == None:
+                subject = curr_subject
+            
+            if not curr_subject or (subject != curr_subject and curr_subject != "ELSE:"):
+                print(f"NOT VALID IF NODE! CURR SUBJ: {curr_subject}, SUBJECT: {subject}")
                 return False
+            
         return True
 
     def transform(self, node):
