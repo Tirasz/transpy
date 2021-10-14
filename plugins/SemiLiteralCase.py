@@ -14,10 +14,11 @@ def analyze_test(test):
         # A list of expressions inside a BoolOp with OR
         case ast.BoolOp(ast.Or(), [*values]):          
             # Guaranteed, that not every expression is literal
-            # Branch is acceptable, if every expression is semi-literal, against the same subject
-            subj = get_subject(values, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq, ast.Eq))
-            if subj:
-                potential_subjects.append(subj)
+            # Branch is acceptable, if at least one expression is semi-literal, against the same subject
+            for node in values:
+                subj = get_subject(node, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq, ast.Eq))
+                if subj:
+                    potential_subjects.append(subj)
 
         # A list of expressions inside a BoolOp with AND
         case ast.BoolOp(ast.And(), [*values]):          
@@ -27,9 +28,10 @@ def analyze_test(test):
             for node in values:
                 match node:
                     case ast.BoolOp(ast.Or(), [*exprs]):
-                        subject = get_subject(exprs,  (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Eq, ast.NotEq))
-                        if subject:
-                            potential_subjects.append(subject)
+                        for node in exprs:
+                            subj = get_subject(node, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq, ast.Eq))
+                            if subj:
+                                potential_subjects.append(subj)
                     case _:
                         subject = get_subject(node,  (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Eq, ast.NotEq))
                         if subject:
@@ -42,9 +44,10 @@ def analyze_test(test):
 
         # A single expression
         case expr:
-            subject = get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Eq, ast.NotEq))
+            subject = get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq))
             potential_subjects.append(subject)
 
+    #print(f"BRANCH: {test.lineno} POTSUBJECTS: {potential_subjects}")
     return set(potential_subjects)
  
         
