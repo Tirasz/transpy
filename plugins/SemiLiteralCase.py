@@ -90,7 +90,7 @@ class SemiLiteralCase:
         
         self.subjects[node] = potential_subjects
         #print(f"LITERAL BRANCHES: {self.literal_branches[node.lineno]} ")
-        return (len(potential_subjects) > 0 and len(self.literal_branches[node.lineno]) != len(branches) and len(self.literal_branches[node.lineno]) > 0)
+        return (len(potential_subjects) > 0 and len(self.literal_branches[node.lineno]) != len(branches))
 
     def transform(self, node):
         branches = get_branches(node)
