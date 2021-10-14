@@ -11,32 +11,16 @@ def analyze_test(test):
     potential_subjects = []
     # The root node of the test of a branch can be:
     match test:
-        # A list of expressions inside a BoolOp with OR
-        case ast.BoolOp(ast.Or(), [*values]):          
-            # Guaranteed, that not every expression is literal
-            # Branch is acceptable, if at least one expression is semi-literal
+        # A list of expressions inside a BoolOp with AND / OR
+        case ast.BoolOp(_, [*values]):     
+            # Guaranteed, that not every expression is literal (LITERAL OR)
+            # Neither is there a single expression in the list that is literal (LITERAL AND)
+            # Branch is acceptable, if there is at least one expression, that is semi-literal
             for node in values:
-                subj = get_subject(node, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq, ast.Eq))
+                subj = list(analyze_test(node))
                 if subj:
-                    potential_subjects.append(subj)
-
-        # A list of expressions inside a BoolOp with AND
-        case ast.BoolOp(ast.And(), [*values]):          
-            # Guaranteed, that there isnt a BoolOp(OR) in the list that is literal
-            # Neither is there a single expression in the list that is literal
-            # Branch is acceptable, if there is a BoolOp(OR) that is semi-literal or at least one expression, that is semi-literal
-            for node in values:
-                match node:
-                    case ast.BoolOp(ast.Or(), [*exprs]):
-                        for node in exprs:
-                            subj = get_subject(node, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq, ast.Eq))
-                            if subj:
-                                potential_subjects.append(subj)
-                    case _:
-                        subject = get_subject(node,  (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Eq, ast.NotEq))
-                        if subject:
-                            potential_subjects.append(subject)
-
+                    potential_subjects += subj
+                    
         # Nothing (else: block)
         case None:  
             #print("NONE")
