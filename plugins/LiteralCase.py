@@ -80,7 +80,7 @@ def analyze_test(test):
 
         # A single expression
         case expr:
-            subject = get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Eq, ast.NotEq))
+            subject = get_subject(expr, (ast.Eq))
             potential_subjects.append(subject)
 
     return set(potential_subjects)
@@ -110,6 +110,7 @@ def transform_test(test, subject_id):
                         if not literal_node and get_subject(node) == subject_id:
                             literal_node = node
             # It is guaranteed that we find a literal node because of the analyzer (hopefully :P)
+
             match_case = transform_test(literal_node, subject_id)[0]
             values.remove(literal_node)
             return (match_case, ast.BoolOp(ast.And(), values))
@@ -135,16 +136,16 @@ class LiteralCase:
 
         # Checking if all the branches are in correct form and have the same subject
         for branch in branches:
-            print(f"BRANCH: {branch.body[0].lineno -1}")
+           #print(f"BRANCH: {branch.body[0].lineno -1}")
             curr_subject = analyze_test(branch.test)
-            print(f"SUBJECT: {curr_subject}")
+            #print(f"SUBJECT: {curr_subject}")
 
             if potential_subjects == None:
                 potential_subjects = curr_subject
             elif curr_subject != set([""]):
                 potential_subjects = potential_subjects.intersection(curr_subject)
 
-        print(f"IF NODE: {node.lineno} subjects: {potential_subjects}")
+        #print(f"IF NODE: {node.lineno} subjects: {potential_subjects}")
         self.subjects[node] = potential_subjects
         return len(potential_subjects) > 0
 
