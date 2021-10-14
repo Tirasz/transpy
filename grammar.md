@@ -14,8 +14,9 @@ LiteralTestBase(subject subj) = LiteralExpression(subject = subj)
 LiteralTest(subject subj) = LiteralTestBase(subject = subj)
 			  | BoolOp(op = And, values=[LiteralTestBase(subject = subj)+, expr+ expressions]
 
-LiteralCase(subject subj) = If(test = LiteralTest(subject=subj), stmt* body, LiteralTest(subject = subj)+ orelse)
+LiteralCaseBase(subject subj) = If(test = LiteralTest(subject=subj), stmt* body, LiteralCase(subject = subj)? orelse)
 
+LiteralCase(subject subj) = If(test = LiteralTest(subject=subj), stmt* body, LiteralCaseBase(subject = subj)+ orelse)
 
 semi_lit_op = Lt | LtE | Gt | GtE | NotEq | Eq
 
@@ -27,6 +28,8 @@ Semi-LiteralExpression(subject subj) = Compare(lit_constant left, ops = [semi_li
 Semi-LiteralTest(subject subj) = Semi-LiteralExpression(subject = subj)
 			       | BoolOp(op = semi_lit_bool, values = [Semi-LiteralExpression(subject = subj)+, expr+ expressions])
 
-Semi-LiteralCase(subject subj) = If(test = Semi-LiteralTest(subject=subj), stmt* body, Semi-LiteralTest(subject = subj)+ orelse)
+Semi-LiteralCaseBase(subject subj) = If(test = Semi-LiteralTest(subject=subj), stmt* body, Semi-LiteralCase(subject = subj)? orelse)
+
+Semi-LiteralCase(subject subj) = If(test = Semi-LiteralTest(subject=subj), stmt* body, Semi-LiteralCaseBase(subject = subj)+ orelse)
 
 ```
