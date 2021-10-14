@@ -48,47 +48,46 @@ def get_subject(expr, ops = (ast.Eq,)):
             return _get_subject(node, ops) #!= False
 
 def analyze_test(test):
+    potential_subjects = []
     # The root node of the test of a branch can be:
     match test:
         # A list of expressions inside a BoolOp with OR
         case ast.BoolOp(ast.Or(), [*values]):          
             # Need to check if every expression is an equality check with the same subject against a constant
-            return get_subject(values)
+            subject = get_subject(values)
+            if subject:
+                potential_subjects.append(subject)
 
         # A list of expressions inside a BoolOp with AND
         case ast.BoolOp(ast.And(), [*values]):          
             # Need to check if there is a BoolOp(OR) in the list of expressions, that is literal,
             # or at least single expression that is literal
-            best_subj_candidate = None
-            foundBoolOr = False
             for node in values:
                 match node:
                     case ast.BoolOp(ast.Or(), [*exprs]):
-                        if foundBoolOr: # If there are multiple OR-s reject the branch
-                            return False
-                        best_subj_candidate = get_subject(exprs)
-                        foundBoolOr = True
+                        subject = get_subject(exprs)
+                        if subject:
+                            potential_subjects.append(subject)
                         #return get_subject(exprs)
                     case _:
-                        if not best_subj_candidate: # If we havent found a subject yet
-                            best_subj_candidate = get_subject(node)
-                        #return get_subject(node)
-            # The only other way is if every expression is literal, with the operators being comparisons
-            if not best_subj_candidate:
-                best_subj_candidate = get_subject(values, (ast.Lt, ast.LtE, ast.Gt, ast.GtE))
-            return best_subj_candidate
+                        subject = get_subject(node)
+                        if subject:
+                            potential_subjects.append(subject)
 
         # Nothing (else: block)
         case None:  
             #print("NONE")
-            return "ELSE:"
+            potential_subjects.append("")
 
         # A single expression
-        case expr: 
-            return get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Eq, ast.NotEq))
+        case expr:
+            subject = get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Eq, ast.NotEq))
+            potential_subjects.append(subject)
+
+    return set(potential_subjects)
  
         
-def transform_test(test):
+def transform_test(test, subject_id):
     match test:
         case ast.BoolOp(ast.Or(), [*values]):
             #It is guaranteed, that every node in the values is literal
@@ -98,79 +97,78 @@ def transform_test(test):
             return (ast.MatchOr(patterns), None)
 
         case ast.BoolOp(ast.And(), [*values]):
-            # values either has a BoolOp(OR) node that is literal, or a single expression that is literal, or every node is semi-literal
+            # values either has a BoolOp(OR) where every expression is subject == literal
+            # Or at least one subject == literal
+
             literal_node = None
             for node in values:
                 match node:
                     case ast.BoolOp(ast.Or(), [*exprs]):
-                        if get_subject(exprs): 
+                        if get_subject(exprs) == subject_id: 
                             literal_node = node
                             break 
                     case _:
-                        if not literal_node and get_subject(node):
+                        if not literal_node and get_subject(node) == subject_id:
                             literal_node = node
-            if literal_node:
-                # If a literal node is found, then we need to put the remaining nodes into guard
-                match_case = transform_test(literal_node)[0]
-                values.remove(literal_node)
-                return (match_case, ast.BoolOp(ast.And(), values))
-            #Guaranteed that every node is semi-literal:
-            subj = get_subject(values, (ast.Lt, ast.LtE, ast.Gt, ast.GtE))
-            transformer = SubjectTransformer(subj, "x")
-            return (ast.MatchAs(name="x"), transformer.visit(ast.BoolOp(ast.And(), values)))
-
+            # It is guaranteed that we find a literal node because of the analyzer (hopefully :P)
+            match_case = transform_test(literal_node, subject_id)[0]
+            values.remove(literal_node)
+            return (match_case, ast.BoolOp(ast.And(), values))
 
         case None:
             return (ast.MatchAs(), None)
 
         case expr:
-            literal_subj = get_subject(expr)
-            semi_literal_subj = get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq))
-            if literal_subj:# If the expression is literal
-                return (ast.MatchValue(value = get_const_node(expr)), None)
-            elif semi_literal_subj:
-                transformer = SubjectTransformer(semi_literal_subj, "x")
-                return (ast.MatchAs(name="x"), transformer.visit(expr))
+            return (ast.MatchValue(value = get_const_node(expr)), None)
+            
 
 
 
 class LiteralCase:
+    def __init__(self):
+        self.subjects = {}
+
     def visit(self, node):
         branches = get_branches(node)
+        potential_subjects = None
         if len(branches) < MIN_BRANCHES:
             return False 
 
-        subject = None
         # Checking if all the branches are in correct form and have the same subject
         for branch in branches:
-            #print(f"BRANCH: {branch.body[0].lineno -1}")
+            print(f"BRANCH: {branch.body[0].lineno -1}")
             curr_subject = analyze_test(branch.test)
-            #print(f"SUBJECT: {curr_subject}")
-            if subject == None:
-                subject = curr_subject
-            
-            if not curr_subject or (subject != curr_subject and curr_subject != "ELSE:"):
-                #print(f"NOT VALID IF NODE! CURR SUBJ: {curr_subject}, SUBJECT: {subject}")
-                return False
-            
-        return True
+            print(f"SUBJECT: {curr_subject}")
+
+            if potential_subjects == None:
+                potential_subjects = curr_subject
+            elif curr_subject != set([""]):
+                potential_subjects = potential_subjects.intersection(curr_subject)
+
+        print(f"IF NODE: {node.lineno} subjects: {potential_subjects}")
+        self.subjects[node] = potential_subjects
+        return len(potential_subjects) > 0
 
     def transform(self, node):
         branches = get_branches(node)
+        if(len(self.subjects[node]) > 1):
+            print(f"Node at line number {node.lineno} has multiple potential subjects: {self.subjects[node]}")
+            print(f"Chosen at random for now.")
+            # TODO
+        
+        subject_id = self.subjects[node].pop()
         # A match node has a 'subject': Should be a Name node 
         # Since the analyzer already made sure, that the subject is the same in all branches, we can skip that here
-        subject = ast.Name(id=analyze_test(branches[0].test), ctx=ast.Load())
+        
+        subject = ast.Name(id=subject_id, ctx=ast.Load())
         # and a list of 'cases': each case being a 'match_case' Node
         # a 'match_case' has a 
         # - 'pattern': in this case, either a MatchValue(value=Constant(x)), a MatchAs(), or a MatchOr(patterns)
         # - 'body': This should just be the main 'If' node's body
         # - 'guard': an optional attribute, contains an expression that will be evaluated if the pattern matches the subject
         cases = []
-        
-        # We also know that every branch has a test of the form 'id == constant' or 'constant == id'
-        
         for branch in branches:
-            curr_pattern = transform_test(branch.test)
+            curr_pattern = transform_test(branch.test, subject_id)
             #print(curr_pattern)
             cases.append(ast.match_case(pattern = curr_pattern[0], body = branch.body, guard = curr_pattern[1]))
 
