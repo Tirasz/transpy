@@ -1,5 +1,4 @@
 import ast
-from typing import Pattern
 from plugins.Base import get_branches, MIN_BRANCHES, SubjectTransformer
 
 def _get_subject(compare, ops):
