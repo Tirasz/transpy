@@ -272,4 +272,7 @@ In order for an **If-node** to be considered **Literal** it has to fulfill some 
 I think its clear, that **Semi-literal** cases cannot be transformed into a match case without it being ugly. 
 In spite of that, I didn't want to throw away every **If-node** that had like 5 **Literal** branches, that could be perfectly transformed, and one **Semi-literal** one,  
 so I thought the best way to combine these two was the definition above.
+Maybe this is a bad idea, maybe its not, I dont know.
+Sidenote: I came up with the name **LiteralCase** from:  
+https://www.python.org/dev/peps/pep-0634/#literal-patterns
     
