@@ -249,16 +249,20 @@ match x:
       * The **subject** of an **If-node** is the intersection of all of its **branches** subjects.
       * At least one **subject** is necessary for transforming an **If-node** into a match statement.
 
-  * **Literal**: A **Compare-node** is **Literal**, if it has a **Subject**, and it compares that subject to a **Constant-node** with the **Equality** operator.
+  * **Literal**: 
+      * A **Compare-node** is **Literal**, if it has a **Subject**, and it compares that subject to a **Constant-node** with the **Equality** operator.
       * A **Branch** is literal if its test is:  
         -- A single, **Literal Compare-node**.  
         -- A **BoolOp-node** with the ```or``` operator, where every node inside its values atrribute is a **Literal Compare-node**.  
-        -- A **BoolOp-node** with the ```and``` operator, where at least one node inside its values attribute is either a **Literal Compare-node**, or a **Literal BoolOp-node**  
-        -- Nothing --> its an ```else``` statement. 
-  * **Semi-literal**: A **Compare-node** is **Semi-literal**, if it has a **Subject**, and it compares that subject to a **Constant-node** with **ANY** operator.
+        -- A **BoolOp-node** with the ```and``` operator, where at least one node inside its values attribute is either a **Literal Compare-node**, or a **Literal BoolOp-node**
+         
+         -- Nothing --> its an ```else``` statement. 
+  * **Semi-literal**:
+      * A **Compare-node** is **Semi-literal**, if it has a **Subject**, and it compares that subject to a **Constant-node** with **ANY** operator.
       * A **Branch** is semi-literal if its test is:  
         -- A single, **Semi-literal Compare-node**.  
         -- A **BoolOp-node** with **ANY** operator, where at least one node inside its values atrribute is a **Semi-literal Compare-node**.  
+
         -- Nothing --> its an ```else``` statement.   
         
 In order for an **If-node** to be considered **Literal** it has to fulfill some conditions:  
