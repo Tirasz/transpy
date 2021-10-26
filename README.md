@@ -271,8 +271,8 @@ In order for an **If-node** to be considered **Literal** it has to fulfill some 
     
 I think its clear, that **Semi-literal** cases cannot be transformed into a match case without it being ugly. 
 In spite of that, I didn't want to throw away every **If-node** that had like 5 **Literal** branches, that could be perfectly transformed, and one **Semi-literal** one,  
-so I thought the best way to combine these two was the definition above.
-Maybe this is a bad idea, maybe its not, I dont know.
+so I thought the best way to combine these two was the definition above.  
+Maybe this is a bad idea, maybe its not, I dont know.  
 Sidenote: I came up with the name **LiteralCase** from:  
 https://www.python.org/dev/peps/pep-0634/#literal-patterns
     
@@ -306,9 +306,7 @@ Later, this could be improved by using the actual Class Patterns:
 (https://www.python.org/dev/peps/pep-0634/#class-patterns)  
 ```python
 
-if isinstance(x, int):
-    ...
-elif isinstance(x, str):
+if isinstance(x, int) or isinstance(x, str):
     ...
 elif isinstance(x, AnyClass) and ( x.something == "something" or x.something == 42) and (x.other_thing == "idk"):
     ...
@@ -317,15 +315,12 @@ elif isinstance(x, OtherClass):
         ...
     elif (x.attribute == 12 or x.attribute == 24) and (x.other_attribute == "this" or x.other_attribute == "that") and (any_bool_expression()):
         ...
-
 ```
 -->  
 ```python
 
 match x:
-    case int():
-        ...
-    case str():
+    case int() | str():
         ...
     case AnyClass(something = "something" | 42, other_thing = "idk"):
         ...
@@ -335,4 +330,4 @@ match x:
         ...
 
 ```  
-Now, this looks cool, but also scary.
+Now, this looks cool. ~~but also scary to implement~~
