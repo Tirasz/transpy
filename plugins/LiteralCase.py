@@ -1,5 +1,6 @@
 import ast
 from plugins.Base import get_branches, MIN_BRANCHES
+MIN_BRANCHES = 3
 
 def lit_analyze(test):
     potential_subjects = []

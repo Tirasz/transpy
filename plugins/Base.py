@@ -1,7 +1,6 @@
 import abc
 import ast
 
-MIN_BRANCHES = 4
 
 class TransformerBase(metaclass=abc.ABCMeta):
     """
