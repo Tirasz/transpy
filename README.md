@@ -262,7 +262,7 @@ match x:
         -- Nothing --> its an ```else``` statement.   
         
 In order for an **If-node** to be considered **Literal** it has to fulfill some conditions:  
-    -- Every branch has to be **Semi-literal**, with at least one being **Literal**.
+    -- Every branch has to be **Semi-literal**, with at least one being **Literal**.  
     -- All branches must share at least one **Subject**.  
     
 I think its clear, that **Semi-literal** cases cannot be transformed into a match case without it being ugly. 
