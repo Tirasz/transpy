@@ -276,3 +276,63 @@ Maybe this is a bad idea, maybe its not, I dont know.
 Sidenote: I came up with the name **LiteralCase** from:  
 https://www.python.org/dev/peps/pep-0634/#literal-patterns
     
+# Second task
+Detect and transform cases like:
+```python
+
+if isinstance(x, int):
+    ...
+elif isinstance(x, str):
+    ...
+elif isinstance(x, AnyClass):
+    ...
+
+```  
+Into something like this: 
+
+```python
+
+match number:
+    case int():
+        ...
+    case str():
+        ...
+    case AnyClass():
+        ...
+
+```  
+
+Later, this could be improved by using the actual Class Patterns:  
+(https://www.python.org/dev/peps/pep-0634/#class-patterns)  
+```python
+
+if isinstance(x, int):
+    ...
+elif isinstance(x, str):
+    ...
+elif isinstance(x, AnyClass) and ( x.something == "something" or x.something == 42) and (x.other_thing == "idk"):
+    ...
+elif isinstance(x, OtherClass):
+    if x.attribute == 42 and x.other_attribute == "something":
+        ...
+    elif (x.attribute == 12 or x.attribute == 24) and (x.other_attribute == "this" or x.other_attribute == "that") and (any_bool_expression()):
+        ...
+
+```
+-->  
+```python
+
+match x:
+    case int():
+        ...
+    case str():
+        ...
+    case AnyClass(something = "something" | 42, other_thing = "idk"):
+        ...
+    case OtherClass(attribute = 42, other_attribute = "something"):
+        ...
+    case OtherClass(attribute = 12 | 24, other_attribute = "this" | "that") if any_bool_expression():
+        ...
+
+```  
+Now, this looks cool, but also scary.
