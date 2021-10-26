@@ -107,6 +107,7 @@ def get_const_node(compare):
 def get_subject(expr, ops = (ast.Eq,)):
     # An expression is literal if it compares a subject to a constant with the ast.Eq operator
     # In case of a list of nodes, like in a BoolOp, the BoolOp is considered literal if all of its values are literal, and have the same subject
+    # The tuple of accepted operators for the comparators is the second input
     match expr:
         case [*nodes]:
             subject = {}
@@ -120,7 +121,7 @@ def get_subject(expr, ops = (ast.Eq,)):
         case node:
             return _get_subject(node, ops) #!= False
 
-def analyze_test(test):
+def semi_analyze(test):
     # Only entering this function, if the branch isn't literal
     potential_subjects = []
     # The root node of the test of a branch can be:
@@ -131,7 +132,7 @@ def analyze_test(test):
             # Neither is there a single expression in the list that is literal (LITERAL AND)
             # Branch is acceptable, if there is at least one expression, that is semi-literal
             for node in values:
-                subj = list(analyze_test(node))
+                subj = list(semi_analyze(node))
                 if subj:
                     potential_subjects += subj
                     
@@ -148,7 +149,7 @@ def analyze_test(test):
     #print(f"BRANCH: {test.lineno} POTSUBJECTS: {potential_subjects}")
     return set(potential_subjects)
  
-def transform_test(test):
+def semi_transform(test):
     # Since it is guaranteed, that the test is not literal, we can never return an ast.MatchValue -- nothing for the value
     # All we can return is an ast.MatchAs(), with the guard being the actual test --> the ugly way
     return (ast.MatchAs(), test)
@@ -172,7 +173,7 @@ class LiteralCase:
             curr_subject = lit_analyze(branch.test)
             # If not, then check if its semi-literal
             if len(curr_subject) == 0:
-                curr_subject = analyze_test(branch.test)
+                curr_subject = semi_analyze(branch.test)
                 self.literal_branches[node.lineno].remove(branch.test.lineno)
 
             # Only accept If-nodes, that, if they have both literal, and semi-literal branches, they share subjects 
@@ -210,7 +211,7 @@ class LiteralCase:
             if branch.test.lineno in self.literal_branches[node.lineno]: #If the branch is literal
                 curr_pattern = lit_transform(branch.test, subject_id)
             else:
-                curr_pattern = transform_test(branch.test)
+                curr_pattern = semi_transform(branch.test)
             #print(curr_pattern)
             cases.append(ast.match_case(pattern = curr_pattern[0], body = branch.body, guard = curr_pattern[1]))
 
