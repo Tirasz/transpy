@@ -218,4 +218,54 @@ match x:
     case _ if (x <= 100 or x > 1000) and boolexp(x)
 ```
 
+# Literal case
+  * **If-node**: In the python AST, it represents an ```if``` statement. It has the attributes: test, body, orelse.  
+      * The test holds a single node, the body and the orelse each hold a list of nodes.  
+      * Since the ```elif``` clauses dont have special representation in the AST, they **appear as extra If-nodes** within the orelse section of the previous one.  
+      * To work with this more comfortably, I thought it would be a good idea, to **separate every If-node into a list of branches**.  
 
+  * **Branch**: A branch represents an ```if / elif``` statement. It has the attributes: test, body. 
+      * Final ```else``` statements dont have a test attribute.
+      * When processing an **If-node**, the first thing I do, is make a list of **branches**, to represent the **If-node**.  
+
+  * **Compare-node**: Represents a comparison of two or more values in the AST. It has the attributes: left, ops, comparators.  
+      * The left attribute represents the first value in the comparison.
+      * The ops attribute is the list of **operators**
+      * The comparators is the list of values after the first element in the comparison.
+
+  * **operators**: Represents comparator tokens in the AST, such as ```==```, ```>```, ```>=```, etc..
+
+  * **BoolOp-node**: Represents a boolean operation in the AST. It has the attributes: op, values.
+      * The op attribute represents either the ```and``` or the ```or``` tokens.
+      * The values attribute is a list of nodes, containing the values involved in the boolean operations.
+      * Consecutive operations with the same operator are collapsed into one **BoolOp-node** with multiple values.
+
+  * **Constant-node**: Represents a constant literal in the AST. Its only attribute is value.
+      * The value attribute can represent simple types such as ```number```, ```string```, or ```None```, but also immutable container types if all of their elements are constant.
+      * Negative numbers are represented with the **Constant-node** being inside an **UnaryOp** node.
+
+  * **Subject**: A **Compare-node** has a subject, if either its left, or its comparators attribute is a singe **Name-node**. 
+      * For every **Branch** there is a set of **subjects** derived from its test attribute -- Can be an empty set
+      * The **subject** of an **If-node** is the intersection of all of its **branches** subjects.
+      * At least one **subject** is necessary for transforming an **If-node** into a match statement.
+
+  * **Literal**: A **Compare-node** is **Literal**, if it has a **Subject**, and it compares that subject to a **Constant-node** with the **Equality** operator.
+      * A **Branch** is literal if its test is:  
+        -- A single, **Literal Compare-node**.  
+        -- A **BoolOp-node** with the ```or``` operator, where every node inside its values atrribute is a **Literal Compare-node**.  
+        -- A **BoolOp-node** with the ```and``` operator, where at least one node inside its values attribute is either a **Literal Compare-node**, or a **Literal BoolOp-node**  
+        -- Nothing --> its an ```else``` statement. 
+  * **Semi-literal**: A **Compare-node** is **Semi-literal**, if it has a **Subject**, and it compares that subject to a **Constant-node** with **ANY** operator.
+      * A **Branch** is semi-literal if its test is:  
+        -- A single, **Semi-literal Compare-node**.  
+        -- A **BoolOp-node** with **ANY** operator, where at least one node inside its values atrribute is a **Semi-literal Compare-node**.  
+        -- Nothing --> its an ```else``` statement.   
+        
+In order for an **If-node** to be considered **Literal** it has to fulfill some conditions:  
+    -- Every branch has to be **Semi-literal**, with at least one being **Literal**.
+    -- All branches must share at least one **Subject**.  
+    
+I think its clear, that **Semi-literal** cases cannot be transformed into a match case without it being ugly. 
+In spite of that, I didn't want to throw away every **If-node** that had like 5 **Literal** branches, that could be perfectly transformed, and one **Semi-literal** one,  
+so I thought the best way to combine these two was the definition above.
+    
