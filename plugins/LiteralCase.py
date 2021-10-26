@@ -1,5 +1,5 @@
 import ast
-from plugins.Base import get_branches, MIN_BRANCHES
+from plugins.Base import get_branches
 MIN_BRANCHES = 3
 
 def lit_analyze(test):
