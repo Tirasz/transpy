@@ -73,7 +73,8 @@ class Analyzer(ast.NodeVisitor):
         # If we get an empty set, it means that there isnt a single subject that could be used for transforming all the branches.
         if(len(possible_subjects) == 0):
             print(f"If-node ({node.lineno} IS NOT TRANSFORMABLE!)")
-            return False
+            del self.branches[node]
+            return
 
         # If we get a set with multiple elements, that means that all branches can be transformed by using any of the possible subjects.
         if(len(possible_subjects) > 1):
@@ -82,7 +83,7 @@ class Analyzer(ast.NodeVisitor):
             possible_subjects = chosen
             print(f"If-node ({node.lineno}) HAS MULTIPLE POSSIBLE SUBJECTS. CHOOSING RANDOM ({possible_subjects}) FOR NOW.")
         
-        self.subject[node] = possible_subjects
+        self.subject[node] = list(possible_subjects)[0]
 
         # After we have chosen a subject, iterate over all the plugins, and remove the ones that cannot transform the branch using the chosen subject
         for branch in temp_results.keys():
@@ -100,7 +101,7 @@ class Analyzer(ast.NodeVisitor):
         # self.branches contains the branches for an If-node
         # self.results contains the chosen transforming plugin for each branch of the If-node
         # self.subject contain the chosen subject for the If-node
-        return True
+        return
        
         
 
@@ -115,12 +116,24 @@ def main():
 
     
     with open("transformed.py", "w") as out:
-        for node in analyzer.results.keys():
-            for transformer in analyzer.results[node]:
-                print(f"If node at line number [{node.lineno}] can be transformed with plugin: [{transformer.__class__.__name__}]")
-                out.write("#"+"-"*10 + str(node.lineno) + "-"*10 + f"[{transformer.__class__.__name__}]"+"\n")
-                out.write(ast.unparse(transformer.transform(node)) + "\n")
-                out.write("#"+"-"*9 +"/"+ str(node.lineno) + "-"*10 + "\n")
+        for node in analyzer.branches.keys():
+            subject_id = analyzer.subject[node]
+            cases = []
+            out.write("#" + "-"*10 + str(node.lineno) + "-"*10 + f"[{subject_id}]" +"\n")
+
+            for branch in analyzer.branches[node]:
+                #print(f"TRANSFORMING BRANCH: ({branch.test.lineno}) WITH SUBJECT: {subject_id}")
+                if branch.test is not None:
+                    plugin = analyzer.results[branch]
+                    transformed_branch = plugin.transform(branch, subject_id)
+                else:
+                    transformed_branch = analyzer.results[branch]
+                cases.append(transformed_branch)
+
+            subject = ast.Name(id = subject_id, ctx = ast.Load())
+            transformed_node = ast.Match(subject = subject, cases = cases)
+            
+            out.write(ast.unparse(transformed_node) + "\n")
         
 
 if __name__ == "__main__":
