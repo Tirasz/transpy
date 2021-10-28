@@ -1,6 +1,6 @@
 import ast
-from plugins.Base import get_branches
-MIN_BRANCHES = 3
+
+
 
 def lit_analyze(test):
     potential_subjects = []
@@ -157,64 +157,37 @@ def semi_transform(test):
 
 class LiteralCase:
     def __init__(self):
-        self.subjects = {} # A dictionary, mapping If nodes (lineno) to a set of subject ID-s (variable names) -- Used in transform(), filled in visit()
-        self.literal_branches = {} # A dictionary, mapping If nodes (lineno) to a list of literal branches (lineno) inside the If node. 
+        self.literal_branches = []
 
-    def visit(self, node):
-        branches = get_branches(node)
-        potential_subjects = None
-        self.literal_branches[node.lineno] = [branch.test.lineno for branch in branches]
+    def visit(self, branch):
+        """Returns with a set of potential subjects for the branch"""
+        #Checking if the branch is Literal
+        curr_subject = lit_analyze(branch.test)
+        #If its not, check if its semi-literal
+        if len(curr_subject) == 0:
+            curr_subject = semi_analyze(branch.test)
+        else:
+            self.literal_branches.append(branch.test.lineno)
 
-        if len(branches) < MIN_BRANCHES:
-            return False 
+        curr_subject.discard(False)
+        return curr_subject
 
-        # Checking if all the branches are in correct form and have the same subject
-        for branch in branches:
-            # First check if the branch is literal
-            curr_subject = lit_analyze(branch.test)
-            # If not, then check if its semi-literal
-            if len(curr_subject) == 0:
-                curr_subject = semi_analyze(branch.test)
-                self.literal_branches[node.lineno].remove(branch.test.lineno)
+    def transform(self, branch, subject_id):
+        """Given a branch, and a subject_id, transform the branch into a match_case"""
 
-            # Only accept If-nodes, that, if they have both literal, and semi-literal branches, they share subjects 
-            if potential_subjects == None:
-                potential_subjects = curr_subject
-            elif curr_subject != set([""]):
-                potential_subjects = potential_subjects.intersection(curr_subject)
-            
-
-        #print(f"IF NODE [{node.lineno}] subjects: {potential_subjects}")
-        
-        self.subjects[node.lineno] = potential_subjects
-        #print(f"LITERAL BRANCHES: {self.literal_branches[node.lineno]} ")
-        return (len(potential_subjects) > 0 and len(self.literal_branches[node.lineno]) > 0)
-
-    def transform(self, node):
-        branches = get_branches(node)
-        if(len(self.subjects[node.lineno]) > 1):
-            print(f"Node at line number {node.lineno} has multiple potential subjects: {self.subjects[node.lineno]}")
-            print(f"Chosen at random for now.")
-            # TODO
-        
-        subject_id = self.subjects[node.lineno].pop()
         # A match node has a 'subject': Should be a Name node 
         # Since the analyzer already made sure, that the subject is the same in all branches, we can skip that here
-        
-        subject = ast.Name(id=subject_id, ctx=ast.Load())
-        # and a list of 'cases': each case being a 'match_case' Node
+
         # a 'match_case' has a 
         # - 'pattern': in this case, either a MatchValue(value=Constant(x)), a MatchAs(), or a MatchOr(patterns)
-        # - 'body': This should just be the main 'If' node's body
+        # - 'body': This should just be the barnch's body
         # - 'guard': an optional attribute, contains an expression that will be evaluated if the pattern matches the subject
-        cases = []
-        for branch in branches:
-            if branch.test.lineno in self.literal_branches[node.lineno]: #If the branch is literal
-                curr_pattern = lit_transform(branch.test, subject_id)
-            else:
-                curr_pattern = semi_transform(branch.test)
-            #print(curr_pattern)
-            cases.append(ast.match_case(pattern = curr_pattern[0], body = branch.body, guard = curr_pattern[1]))
 
-        return ast.Match(subject = subject, cases = cases)
+        if branch.test.lineno in self.literal_branches:
+            pattern = lit_transform(branch.test, subject_id)
+        else:
+            pattern = semi_transform(branch.test)
+
+        return ast.match_case(pattern = pattern[0], body = branch.body, guard = pattern[1])
+
         
