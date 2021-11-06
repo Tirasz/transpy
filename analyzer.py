@@ -7,6 +7,7 @@ def custom_eq(self, other):
 
 ast.AST.__hash__ = custom_hash
 ast.AST.__eq__ = custom_eq
+
 import pkgutil
 import importlib
 import inspect
@@ -53,13 +54,12 @@ class Analyzer(ast.NodeVisitor):
             else:
                 self.results[branch] = ast.match_case(pattern = ast.MatchAs(), body = branch.body, guard = None)
 
-        for plugin in self.transformers: #Minden pluginra
-            for branch in self.branches[node]: #Minden branchre
-                if branch.test is not None:
-                    subjects = plugin.visit(branch)
-                    temp_results[branch].append((plugin, subjects))
-        # temp_results is a dictionary mapping the branches of the current If-node to a list of tuples: (plugin, set(subjects))
-        # 'else:' branches not included; they are trivial
+        for plugin in self.transformers: 
+            for branch in temp_results.keys(): 
+                subjects = plugin.visit(branch)
+                temp_results[branch].append((plugin, subjects))
+        # temp_results is a dictionary mapping the (not trivial) branches of the current If-node to a list of tuples: (plugin, set(subjects))
+
 
         # First, for every branch, union all of their possible subjects
         curr_subjects = {}
@@ -104,12 +104,13 @@ class Analyzer(ast.NodeVisitor):
 
             if len(temp_results[branch]) > 1:
                 print(f"BRANCH ({branch.test.lineno} HAS MULTIPLE POSSIBLE PLUGINS. CHOOSING RANDOM FOR NOW.)")
+
             self.results[branch] = temp_results[branch][0][0]
         
         # self.branches contains the branches for an If-node
         # self.results contains the chosen transforming plugin for each branch of the If-node
         # self.subject contain the chosen subject for the If-node
-        return
+        
        
         
 
@@ -136,9 +137,9 @@ def main():
                     transformed_branch = plugin.transform(branch, subject)
                 else:
                     transformed_branch = analyzer.results[branch]
+
                 cases.append(transformed_branch)
 
-            #subject = ast.Name(id = subject_id, ctx = ast.Load())
             transformed_node = ast.Match(subject = subject, cases = cases)
             
             out.write(ast.unparse(transformed_node) + "\n")

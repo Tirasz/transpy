@@ -29,18 +29,15 @@ def lit_analyze(test):
                         if subject:
                             potential_subjects.append(subject)
 
-        # Nothing (else: block)
-        case None:  
-            #print("NONE")
-            potential_subjects.append("")
-
         # A single expression
         case expr:
             subject = get_subject(expr)
             potential_subjects.append(subject)
+
     return set(potential_subjects)
 
 def lit_transform(test, subject_node):
+    """Returns a tuple of (pattern, guard) for a given test"""
     match test:
         case ast.BoolOp(ast.Or(), [*values]):
             #It is guaranteed, that every node in the values is literal
@@ -51,7 +48,7 @@ def lit_transform(test, subject_node):
 
         case ast.BoolOp(ast.And(), [*values]):
             # values either has a BoolOp(OR) where every expression is subject == literal
-            # Or at least one subject == literal
+            # Or at least one literal expression
 
             literal_node = None
             for node in values:
@@ -63,14 +60,11 @@ def lit_transform(test, subject_node):
                     case _:
                         if not literal_node and get_subject(node) == subject_node:
                             literal_node = node
-            # It is guaranteed that we find a literal node because of the analyzer (hopefully :P)
+            # It is guaranteed that we find a literal node because of the analyzer (hopefully)
 
             match_case = lit_transform(literal_node, subject_node)[0]
             values.remove(literal_node)
             return (match_case, ast.BoolOp(ast.And(), values))
-
-        case None:
-            return (ast.MatchAs(), None)
 
         case expr:
             return (ast.MatchValue(value = get_const_node(expr)), None)
@@ -89,9 +83,6 @@ def _get_subject(compare, accepted_ops):
             return subject_node
         case ast.Compare(left = ast.Constant(_) | ast.UnaryOp(ast.USub(), ast.Constant(_)), ops = [comp], comparators = [subject_node]) if isinstance(comp, accepted_ops):
             return subject_node
-
-
-
     return False
 
 def get_const_node(compare):
@@ -103,7 +94,6 @@ def get_const_node(compare):
             return compare.comparators[0]
         case _:
             raise ValueError(f"Cannot get the const node out of: \n {ast.dump(compare)}")
-
 
 def get_subject(expr, ops = (ast.Eq,)):
     # An expression is literal if it compares a subject to a constant with the ast.Eq operator
@@ -137,11 +127,6 @@ def semi_analyze(test):
                 if subj:
                     potential_subjects += subj
                     
-        # Nothing (else: block)
-        case None:  
-            #print("NONE")
-            potential_subjects.append("")
-
         # A single expression
         case expr:
             subject = get_subject(expr, (ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.NotEq))
@@ -150,10 +135,6 @@ def semi_analyze(test):
     #print(f"BRANCH: {test.lineno} POTSUBJECTS: {potential_subjects}")
     return set(potential_subjects)
  
-def semi_transform(test):
-    # Since it is guaranteed, that the test is not literal, we can never return an ast.MatchValue -- nothing for the value
-    # All we can return is an ast.MatchAs(), with the guard being the actual test --> the ugly way
-    return (ast.MatchAs(), test)
 
 class LiteralCase:
     def __init__(self):
@@ -179,14 +160,14 @@ class LiteralCase:
         # Since the analyzer already made sure, that the subject is the same in all branches, we can skip that here
 
         # a 'match_case' has a 
-        # - 'pattern': in this case, either a MatchValue(value=Constant(x)), a MatchAs(), or a MatchOr(patterns)
+        # - 'pattern': in this case, either a MatchValue(value=Constant(x)), or a MatchOr(patterns)
         # - 'body': This should just be the barnch's body
         # - 'guard': an optional attribute, contains an expression that will be evaluated if the pattern matches the subject
 
         if branch.test.lineno in self.literal_branches:
             pattern = lit_transform(branch.test, subject_node)
         else:
-            pattern = semi_transform(branch.test)
+            pattern = (ast.MatchAs(), branch.test)
 
         return ast.match_case(pattern = pattern[0], body = branch.body, guard = pattern[1])
 
