@@ -36,12 +36,11 @@ def lit_analyze(test):
 
         # A single expression
         case expr:
-            subject = get_subject(expr, (ast.Eq))
+            subject = get_subject(expr)
             potential_subjects.append(subject)
-
     return set(potential_subjects)
 
-def lit_transform(test, subject_id):
+def lit_transform(test, subject_node):
     match test:
         case ast.BoolOp(ast.Or(), [*values]):
             #It is guaranteed, that every node in the values is literal
@@ -58,15 +57,15 @@ def lit_transform(test, subject_id):
             for node in values:
                 match node:
                     case ast.BoolOp(ast.Or(), [*exprs]):
-                        if get_subject(exprs) == subject_id: 
+                        if get_subject(exprs) == subject_node: 
                             literal_node = node
                             break 
                     case _:
-                        if not literal_node and get_subject(node) == subject_id:
+                        if not literal_node and get_subject(node) == subject_node:
                             literal_node = node
             # It is guaranteed that we find a literal node because of the analyzer (hopefully :P)
 
-            match_case = lit_transform(literal_node, subject_id)[0]
+            match_case = lit_transform(literal_node, subject_node)[0]
             values.remove(literal_node)
             return (match_case, ast.BoolOp(ast.And(), values))
 
@@ -76,34 +75,35 @@ def lit_transform(test, subject_id):
         case expr:
             return (ast.MatchValue(value = get_const_node(expr)), None)
             
-def _get_subject(compare, ops):
+def _get_subject(compare, accepted_ops):
     #A compare node is "literal" if its left attribute is:
-    # - A Name node and its comparators atribute is:
+    # - A subject node and its comparators atribute is:
     #       - A single Constant ->(number or string)
     #       - An UnaryOp whose operator is USub ->(negative number)
-    # - A single Constant ->(number or string) and its comparators attribute is a Name node
+    # - A single Constant ->(number or string) and its comparators attribute is a subject node
     # - An UnaryOp whose operator is USub ->(negative number) and its comparators attribute is a Name node 
     # The tuple of accepted operators for the comparator node is the second input
     
     match compare:
-        case ast.Compare(ast.Name(id=var_id, ctx = _), [comp], [ast.Constant(_)]) if isinstance(comp, ops):
-            return var_id
-        case ast.Compare(ast.Constant(_), [comp], [ast.Name(id=var_id, ctx = _)]) if isinstance(comp, ops):
-            return var_id
-        case ast.Compare(ast.Name(id=var_id, ctx = _), [comp], [ast.UnaryOp(ast.USub(), ast.Constant(_))]) if isinstance(comp, ops):
-            return var_id
-        case ast.Compare(ast.UnaryOp(ast.USub(), ast.Constant(_)), [comp], [ast.Name(id=var_id, ctx = _)]) if isinstance(comp, ops):
-            return var_id
+        case ast.Compare(left = subject_node, ops = [comp], comparators = [ast.Constant()] | [ast.UnaryOp(ast.USub(), ast.Constant(_))]) if isinstance(comp, accepted_ops):
+            return subject_node
+        case ast.Compare(left = ast.Constant(_) | ast.UnaryOp(ast.USub(), ast.Constant(_)), ops = [comp], comparators = [subject_node]) if isinstance(comp, accepted_ops):
+            return subject_node
+
+
 
     return False
 
 def get_const_node(compare):
     # It is guaranteed that the input is a compare node that is literal
-    if isinstance(compare.left, ast.Name):
-        return compare.comparators[0]
-    elif isinstance(compare.comparators[0], ast.Name):
-        return compare.left
-    raise ValueError(f"Cannot get the const node out of: \n {ast.dump(compare)}")
+    match compare:
+        case ast.Compare(left = ast.Constant(_) | ast.UnaryOp(ast.USub(), ast.Constant(_))):
+            return compare.left
+        case ast.Compare(comparators = [ast.Constant(_)] | [ast.UnaryOp(ast.USub(), ast.Constant(_))]):
+            return compare.comparators[0]
+        case _:
+            raise ValueError(f"Cannot get the const node out of: \n {ast.dump(compare)}")
+
 
 def get_subject(expr, ops = (ast.Eq,)):
     # An expression is literal if it compares a subject to a constant with the ast.Eq operator
@@ -172,7 +172,7 @@ class LiteralCase:
         curr_subject.discard(False)
         return curr_subject
 
-    def transform(self, branch, subject_id):
+    def transform(self, branch, subject_node):
         """Given a branch, and a subject_id, transform the branch into a match_case"""
 
         # A match node has a 'subject': Should be a Name node 
@@ -184,7 +184,7 @@ class LiteralCase:
         # - 'guard': an optional attribute, contains an expression that will be evaluated if the pattern matches the subject
 
         if branch.test.lineno in self.literal_branches:
-            pattern = lit_transform(branch.test, subject_id)
+            pattern = lit_transform(branch.test, subject_node)
         else:
             pattern = semi_transform(branch.test)
 

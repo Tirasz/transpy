@@ -1,4 +1,12 @@
 import ast
+def custom_hash(self):
+    return hash(ast.dump(self))
+
+def custom_eq(self, other):
+    return hash(self) == hash(other)
+
+ast.AST.__hash__ = custom_hash
+ast.AST.__eq__ = custom_eq
 import pkgutil
 import importlib
 import inspect
@@ -117,20 +125,20 @@ def main():
     
     with open("transformed.py", "w") as out:
         for node in analyzer.branches.keys():
-            subject_id = analyzer.subject[node]
+            subject = analyzer.subject[node]
             cases = []
-            out.write("#" + "-"*10 + str(node.lineno) + "-"*10 + f"[{subject_id}]" +"\n")
+            out.write("#" + "-"*10 + str(node.lineno) + "-"*10 + f"[{type(subject).__name__}]" +"\n")
 
             for branch in analyzer.branches[node]:
                 #print(f"TRANSFORMING BRANCH: ({branch.test.lineno}) WITH SUBJECT: {subject_id}")
                 if branch.test is not None:
                     plugin = analyzer.results[branch]
-                    transformed_branch = plugin.transform(branch, subject_id)
+                    transformed_branch = plugin.transform(branch, subject)
                 else:
                     transformed_branch = analyzer.results[branch]
                 cases.append(transformed_branch)
 
-            subject = ast.Name(id = subject_id, ctx = ast.Load())
+            #subject = ast.Name(id = subject_id, ctx = ast.Load())
             transformed_node = ast.Match(subject = subject, cases = cases)
             
             out.write(ast.unparse(transformed_node) + "\n")
