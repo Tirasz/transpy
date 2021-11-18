@@ -37,3 +37,6 @@ class LiteralPattern:
             currNode = currNode.value
         self._potential_subjects.add(currNode)
         return self._potential_subjects
+
+    def guard(self, subject):
+        return None

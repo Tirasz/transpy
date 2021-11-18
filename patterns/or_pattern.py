@@ -29,9 +29,15 @@ class OrPattern():
         return len(self._potential_subjects)
 
 
-    def transform(self):
-        # TODO
-        pass
+    def transform(self, subject):
+        _patterns = []
+        for term in self.terms:
+            _patterns.append(term.transform(subject))
+        return ast.MatchOr(patterns = _patterns)
+
     
     def potential_subjects(self):
         return self._potential_subjects
+
+    def guard(self, subject):
+        return None
