@@ -13,10 +13,10 @@ import pkgutil
 import inspect
 import patterns
 
-ValidPatterns = []
 
 def load_patterns():
-    """Loads and adds valid pattern implementations to the Base.ValidPatterns list."""
+    """Returns a list of valid pattern classes"""
+    result = []
     # Loading python modules from patterns folder
     Modules = {
     name: importlib.import_module(name)
@@ -28,9 +28,10 @@ def load_patterns():
         for name, cls in inspect.getmembers(Modules[plugin_name], inspect.isclass):
             #print(f"PLUGIN TEST: {name} : {cls}")
             if issubclass(cls, patterns.Base.PatternBase):
-                ValidPatterns.append(cls)
-                print(f"PATTERN: {name} succesfully loaded!")
-
+                result.append(cls)
+                print(f"LOAD_PATTERN: {name} succesfully loaded!")
+    return result
+    
 class Branch:
     def __init__(self, body, test = None):
         self.test = test
@@ -83,8 +84,9 @@ def simplify(node):
     return ast.BoolOp(node.op, new_values)
 
 
-
 class Analyzer(ast.NodeVisitor):
+    Patterns = None
+
     def __init__(self):
         self.branches = {} # Mapping If-nodes to a list of its branches
         self.patterns = {} # Mapping branches to a pattern
@@ -93,22 +95,29 @@ class Analyzer(ast.NodeVisitor):
         self.branches[node] = get_branches(node)
         for branch in self.branches[node]:
                 # Determine the main pattern of the branch
-                for pattern in ValidPatterns:
+                for pattern in Analyzer.Patterns:
                     curr_pattern = pattern()
                     if curr_pattern.visit(branch.test):
                         self.patterns[branch] = curr_pattern
-                # If no pattern recognises the branch, then delete it from the dict and return
+                        break
+
+                # If no pattern recognises the branch, then delete the whole if node from the dict and return
                 if branch not in self.patterns.keys():
                     print(f"NO PATTERN RECOGNISES BRANCH({branch.body[0].lineno -1})")
                     del self.branches[node]
                     return
-                print(f"BRANCH ({branch.body[0].lineno -1}): {self.patterns[branch]} ==> {self.patterns[branch].get_potential_subjects()}")
+                #print(f"BRANCH ({branch.body[0].lineno -1}): {self.patterns[branch]} ==> {self.patterns[branch].potential_subjects()}")
+
+     
 
 
 
 
 def main():
-    load_patterns()
+    Analyzer.Patterns = tuple(load_patterns())
+    for pattern in Analyzer.Patterns:
+        pattern.Patterns = Analyzer.Patterns
+    
     with open("test.py", "r") as src:
         tree = ast.parse(src.read())    
 

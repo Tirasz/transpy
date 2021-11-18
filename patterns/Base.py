@@ -5,9 +5,10 @@ import ast
 class PatternBase(metaclass=abc.ABCMeta):
     """
     Defines an interface for a transformer plugin. 
-    Every transformer should implement a visit(node), and a transform(node) method.
-    visit(node): Analyzes the node, and determines if it can be transformed. Returns a boolean.
-    transform(node): Returns the transformed node. 
+    Every transformer should implement:
+    visit(node): returns a boolean, true, if the node fits the pattern
+    transform(node): returns an ast pattern, that can be used inside an ast.match_case 
+    potential_subjects(): returns a set, containing nodes that the pattern recognises as a subject node. (subjects are used for ast.Match)
     """
     @classmethod
     def __subclasshook__(cls, subclass):
@@ -15,5 +16,6 @@ class PatternBase(metaclass=abc.ABCMeta):
                 callable(subclass.visit) and
                 hasattr(subclass, 'transform') and
                 callable(subclass.transform) and
-                hasattr(subclass, 'get_potential_subjects') and
-                callable(subclass.get_potential_subjects))
+                hasattr(subclass, 'potential_subjects') and
+                callable(subclass.potential_subjects)
+                )

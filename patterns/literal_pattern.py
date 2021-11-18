@@ -3,17 +3,17 @@ import ast
 
 class LiteralPattern:
     def __init__(self):
-        self.potential_subjects = set()
+        self._potential_subjects = set()
         self.const_node = None
 
     def visit(self, node):
         match node:
             case ast.Compare(left = subject_node, ops = [ast.Eq()], comparators = [ast.Constant()] | [ast.UnaryOp(ast.USub(), ast.Constant())]):
                 self.const_node = node.comparators[0]
-                self.potential_subjects.add(subject_node)
+                self._potential_subjects.add(subject_node)
             case ast.Compare(left = ast.Constant() | ast.UnaryOp(ast.USub(), ast.Constant()), ops = [ast.Eq()], comparators = [subject_node]):
                 self.const_node = node.left
-                self.potential_subjects.add(subject_node)
+                self._potential_subjects.add(subject_node)
             case _:
                 return False
         return True
@@ -25,5 +25,5 @@ class LiteralPattern:
     
         return ast.MatchValue(self.const_node)
 
-    def get_potential_subjects(self):
-        return self.potential_subjects
+    def potential_subjects(self):
+        return self._potential_subjects
