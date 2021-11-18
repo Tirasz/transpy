@@ -2,7 +2,7 @@ import abc
 import ast
 
 
-class TransformerBase(metaclass=abc.ABCMeta):
+class PatternBase(metaclass=abc.ABCMeta):
     """
     Defines an interface for a transformer plugin. 
     Every transformer should implement a visit(node), and a transform(node) method.
@@ -56,3 +56,28 @@ def get_branches(node) :
             case [*nodes]: # can be a list of nodes, if its the last 'else:' block
                 branches.append(Branch(nodes))
                 return branches
+
+def _simplify(node, parent):
+    # Gets called on each node in the parents BoolOp's values
+    new_values = []
+    match node:
+        case ast.BoolOp(op, [*values]) if op == parent.op: ## If the node is also a boolOp, with the same operator, we can simplify
+            for value in values:
+                for n in _simplify(value, node):
+                    new_values.append(n)
+            return new_values
+        case ast.BoolOp(op, [*values]): ## If the node is also a BoolOp, with a different operator, try to simplify the node on its own
+            new_values.append(simplify(node))
+            return new_values
+        case _:
+            new_values.append(node)
+            return new_values
+
+
+def simplify(node):
+    '''Removes unnecessary parentheses from a BoolOp node'''
+    new_values = []
+    for value in node.values:
+        for n in _simplify(value, node):
+            new_values.append(n)
+    return ast.BoolOp(node.op, new_values)
