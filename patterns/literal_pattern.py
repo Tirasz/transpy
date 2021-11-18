@@ -19,11 +19,21 @@ class LiteralPattern:
         return True
 
     def transform(self, subject):
-        subject_node = self.potential_subjects.pop()
+        for subject_node in self._potential_subjects:
+            break
         if not subject == subject_node:
             raise ValueError(f"Cannot transform LiteralPattern! Given subject: {subject}, Expected: {subject_node}")
     
         return ast.MatchValue(self.const_node)
 
     def potential_subjects(self):
+        # For an attribute node, representing "obj.prop.x" returns the set: (obj, obj.prop, obj.prop.x)
+        # In some cases, they all could be considered a subject
+        for subject in self._potential_subjects:
+            break
+        currNode = subject
+        while isinstance(currNode, ast.Attribute): 
+            self._potential_subjects.add(currNode.value)
+            currNode = currNode.value
+        self._potential_subjects.add(currNode)
         return self._potential_subjects
