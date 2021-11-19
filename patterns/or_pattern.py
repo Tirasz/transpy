@@ -1,11 +1,14 @@
 import ast
 
 class OrPattern():
+    IsComplex = False
     def __init__(self):
         self.terms = []
         self._potential_subjects = set()
+        self.node = None
 
     def visit(self, node):
+        self.node = node
         # Or-pattern: T1 OR T2 [OR Tn]* 
         # Where all Ti terms are valid patterns, and they share one possible subject.
         if not ( isinstance(node, ast.BoolOp) and isinstance(node.op, ast.Or) ):
@@ -26,7 +29,18 @@ class OrPattern():
         # Intersecting every terms potential subjects.
         for term in self.terms:
             self._potential_subjects = self._potential_subjects.intersection(term.potential_subjects())
-        return len(self._potential_subjects)
+        
+        if len(self._potential_subjects) == 0:
+            return False
+        
+        # If any pattern has a guard inside an or pattern, the or pattern cannot be transformed
+        # (I think so at least lol)
+        for term in self.terms:
+            for subj in self._potential_subjects:
+                if term.guard(subj):
+                    return False
+
+        return True
 
 
     def transform(self, subject):
