@@ -121,7 +121,8 @@ class Analyzer(ast.NodeVisitor):
         potential_subjects = self.patterns[self.branches[node][0]].potential_subjects().copy()
         # Skipping "else:" branch
         for branch in [b for b in self.branches[node] if b.test is not None]:
-            potential_subjects.intersection(self.patterns[branch].potential_subjects())
+            print(f"ANALYZER: POTENTIAL SUBJECTS FOR BRANCH({branch.body[0].lineno-1}): {[ast.unparse(x) for x in self.patterns[branch].potential_subjects()]}")
+            potential_subjects = potential_subjects.intersection(self.patterns[branch].potential_subjects())
  
         if len(potential_subjects) == 0:
             print(f"ANALYZER: NO COMMON SUBJECT FOR IF-NODE AT: ({node.test.lineno})")
