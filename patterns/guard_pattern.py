@@ -1,12 +1,15 @@
 import ast
 
 class GuardPattern():
+    IsComplex = False
     def __init__(self):
         self.terms = []
         self._guard = []
         self._potential_subjects = set()
+        self.node = None
 
     def visit(self, node):
+        self.node = node
         # T1 AND T2 [AND Tn]
         # Where at least one term is a recognised pattern
         # In case of more than one recognised pattern, the GuardPattern is only valid, if no two terms share the same subject.
@@ -28,6 +31,15 @@ class GuardPattern():
             return False
         # At least one term is recognised
 
+        #Checking for complex patterns
+        for pattern in self.terms:
+            if pattern.IsComplex:
+                pattern.process(self)
+                print(f"PATTERN: RETURNED FROM COMPLEX CALL.")
+                break
+        
+        print(f"\tREMAINING TERMS:\n\t{[str(term) for term in self.terms]}")
+        print(f"\tREMAINING GUARD:\n\t{[ast.unparse(t) for t in self._guard]}")
         self._potential_subjects = self.terms[0].potential_subjects().copy()
         # Unioning every terms potential subjects.
         for term in self.terms:
@@ -50,7 +62,9 @@ class GuardPattern():
     def guard(self, subject):
         # self._guard contains all the terms by default
         # this returns the terms that are not recognised, and the ones that dont have the given subject
-
+        print(f"PATTERN: GUARD: {[ast.unparse(t) for t in self._guard]}")
+        if len(self._guard) == 0:
+            return None
         res = []
         for term in self._guard:
             recognised = False
@@ -61,4 +75,6 @@ class GuardPattern():
                     break
             if not recognised:
                 res.append(term)
-        return ast.BoolOp(op = ast.And(), values = res)
+        if len(res):
+            return ast.BoolOp(op = ast.And(), values = res)
+        return None

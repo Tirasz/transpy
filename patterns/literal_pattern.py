@@ -2,11 +2,13 @@ import ast
 
 
 class LiteralPattern:
+    IsComplex = False
     def __init__(self):
         self._potential_subjects = set()
         self.const_node = None
-
+        self.node = None
     def visit(self, node):
+        self.node = node
         match node:
             case ast.Compare(left = subject_node, ops = [ast.Eq()], comparators = [ast.Constant()] | [ast.UnaryOp(ast.USub(), ast.Constant())]):
                 self.const_node = node.comparators[0]
@@ -29,6 +31,7 @@ class LiteralPattern:
     def potential_subjects(self):
         # For an attribute node, representing "obj.prop.x" returns the set: (obj, obj.prop, obj.prop.x)
         # In some cases, they all could be considered a subject
+        """
         for subject in self._potential_subjects:
             break
         currNode = subject
@@ -36,6 +39,7 @@ class LiteralPattern:
             self._potential_subjects.add(currNode.value)
             currNode = currNode.value
         self._potential_subjects.add(currNode)
+        """
         return self._potential_subjects
 
     def guard(self, subject):

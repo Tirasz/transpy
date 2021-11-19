@@ -10,7 +10,11 @@ class PatternBase(metaclass=abc.ABCMeta):
     transform(node): returns an ast pattern, that can be used inside an ast.match_case 
     guard(subjectNode): Returns an expression, to put in guard. Can be different based on chosen subjectNode.
     potential_subjects(): returns a set, containing nodes that the pattern recognises as a subject node. (subjects are used for ast.Match)
+    Every instance of a pattern should initialise a node attribute, that stores what node its visit method was called on originally.
     Every valid pattern class gets a static attribute 'Patterns', which is a tuple of all valid Pattern classes. This can be used to recognise sub-patterns.
+    Some patterns might require some back-tracking, to properly work. 
+    Every pattern should have a static boolean attribute, 'IsComplex' indicating this.
+    If the pattern is complex, the pattern has to provide a method "process(parentPattern)", which the parent Pattern should call, passing itself.
     """
     @classmethod
     def __subclasshook__(cls, subclass):
@@ -21,5 +25,8 @@ class PatternBase(metaclass=abc.ABCMeta):
                 hasattr(subclass, 'potential_subjects') and
                 callable(subclass.potential_subjects) and
                 hasattr(subclass, 'guard') and
-                callable(subclass.guard)
+                callable(subclass.guard) and
+                hasattr(subclass(), 'node') and
+                hasattr(subclass, 'IsComplex') and
+                (not subclass.IsComplex) or (hasattr(subclass, 'process') and callable(subclass.process))
                 )
