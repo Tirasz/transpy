@@ -31,17 +31,6 @@ class LiteralPattern:
         return ast.MatchValue(self.const_node)
 
     def potential_subjects(self):
-        # For an attribute node, representing "obj.prop.x" returns the set: (obj, obj.prop, obj.prop.x)
-        # In some cases, they all could be considered a subject
-        """
-        for subject in self._potential_subjects:
-            break
-        currNode = subject
-        while isinstance(currNode, ast.Attribute): 
-            self._potential_subjects.add(currNode.value)
-            currNode = currNode.value
-        self._potential_subjects.add(currNode)
-        """
         return self._potential_subjects
 
     def guard(self, subject):
