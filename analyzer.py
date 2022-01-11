@@ -36,6 +36,8 @@ class Branch:
     def __init__(self, body, test = None):
         self.test = test
         self.body = body
+        self.flat = None
+
 
 def get_branches(node) :
     # Returns a list of Branches for each branch of the given 'If' node
@@ -83,21 +85,48 @@ def simplify(node):
             new_values.append(n)
     return ast.BoolOp(node.op, new_values)
 
-def preprocess(root):
-    # Go through every If-node in the body
-    rootCopy = copy.deepcopy(root)
-    for Ifnode in root.body:
-        if not isinstance(Ifnode, ast.If):
+def flatten(branch):
+    """Tries to flatten the branch. Returns None if it cannot be done. """
+    if branch.test is None:
+        return None
+    preNest = []
+    postNest = []
+    nestedIf = None
+    for node in branch.body:
+        # Looping through every node in the branches body
+        if isinstance(node, ast.If): # An If-node is found
+            if nestedIf is not None: # If its not the only nested If-node
+                return None
+            nestedIf = node
             continue
-        print(f"PREPROC: IF NODE AT {Ifnode.lineno}")
-        # Checking for nested if-nodes
-        nestedIfs = {} # mapping the nested If-nodes to their index's in the parent If node's body
-        for i in range(len(Ifnode.body)):
-            if isinstance(Ifnode.body[i], ast.If):
-                print(f"PREPROC: NESTED IF NODE AT {Ifnode.body[i].lineno}")
-                nestedIfs[Ifnode.body[i]] = i
-        
-    return root
+
+        if nestedIf is None: # node is not an If-node, and we havent found one yet
+            preNest.append(node)
+        else:
+            postNest.append(node) # node is not an If-node, and we have already found one
+
+    if nestedIf is None:
+        return None
+
+    mainTest = branch.test
+    nestedBranches = get_branches(nestedIf)
+    flattened = []
+
+    for branch in nestedBranches:
+        newBody = preNest + branch.body + postNest
+        newTest = ast.BoolOp(ast.And(), [mainTest])
+        if branch.test is not None:
+            newTest.values.append(branch.test)
+            newTest = simplify(newTest)
+        flattened.append(Branch(newBody, newTest))
+    
+    return flattened
+
+
+ 
+    
+
+   
 
 class Analyzer(ast.NodeVisitor):
     Patterns = None
@@ -114,6 +143,15 @@ class Analyzer(ast.NodeVisitor):
         print(f"\n\nANALYZER: IF-NODE({node.test.lineno})")
         for branch in self.branches[node]:
                 print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
+                branch.flat = flatten(branch)
+                if branch.flat is not None:
+                    print(f"ANALYZER: BRANCH({branch.body[0].lineno-1}) COULD BE FLATTENED: ")
+                    for subBranch in branch.flat:
+                        print(f"{ast.unparse(subBranch.test)} --> {len(subBranch.body)}")
+                        for idk in subBranch.body:
+                            print(ast.unparse(idk))
+                        print("-"*10)
+
                 if branch.test is None:
                     print(f"ANALYZER: TEST IS NONE. SKIPPING")
                     continue
@@ -156,7 +194,7 @@ def main():
     Analyzer.Patterns = tuple(load_patterns())
     
     with open("test.py", "r") as src:
-        tree = preprocess(ast.parse(src.read()))    
+        tree = ast.parse(src.read())
 
 
     analyzer = Analyzer()    
