@@ -12,7 +12,7 @@ import importlib
 import pkgutil
 import inspect
 import patterns
-
+import copy
 
 def load_patterns():
     """Returns a list of valid pattern classes"""
@@ -83,6 +83,21 @@ def simplify(node):
             new_values.append(n)
     return ast.BoolOp(node.op, new_values)
 
+def preprocess(root):
+    # Go through every If-node in the body
+    rootCopy = copy.deepcopy(root)
+    for Ifnode in root.body:
+        if not isinstance(Ifnode, ast.If):
+            continue
+        print(f"PREPROC: IF NODE AT {Ifnode.lineno}")
+        # Checking for nested if-nodes
+        nestedIfs = {} # mapping the nested If-nodes to their index's in the parent If node's body
+        for i in range(len(Ifnode.body)):
+            if isinstance(Ifnode.body[i], ast.If):
+                print(f"PREPROC: NESTED IF NODE AT {Ifnode.body[i].lineno}")
+                nestedIfs[Ifnode.body[i]] = i
+        
+    return root
 
 class Analyzer(ast.NodeVisitor):
     Patterns = None
@@ -91,6 +106,8 @@ class Analyzer(ast.NodeVisitor):
         self.branches = {} # Mapping If-nodes to a list of its branches. !!Only contains transformable if-nodes!!
         self.patterns = {} # Mapping branches to a pattern
         self.subjects = {} # Mapping the If-node to its selected subject !!Only contains transformable if-nodes!!
+        for pattern in Analyzer.Patterns:
+            pattern.Patterns = Analyzer.Patterns
         
     def visit_If(self, node):
         self.branches[node] = get_branches(node)
@@ -135,14 +152,12 @@ class Analyzer(ast.NodeVisitor):
         print(f"ANALYZER: IF-NODE AT ({node.test.lineno}) HAS POTENTIAL SUBJECT: ({ast.unparse(self.subjects[node])})")
 
 
-
 def main():
     Analyzer.Patterns = tuple(load_patterns())
-    for pattern in Analyzer.Patterns:
-        pattern.Patterns = Analyzer.Patterns
     
     with open("test.py", "r") as src:
-        tree = ast.parse(src.read())    
+        tree = preprocess(ast.parse(src.read()))    
+
 
     analyzer = Analyzer()    
     analyzer.visit(tree)
