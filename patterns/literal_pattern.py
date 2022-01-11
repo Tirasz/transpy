@@ -3,10 +3,12 @@ import ast
 
 class LiteralPattern:
     IsComplex = False
+    
     def __init__(self):
         self._potential_subjects = set()
         self.const_node = None
         self.node = None
+
     def visit(self, node):
         self.node = node
         match node:
