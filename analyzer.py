@@ -94,6 +94,7 @@ class Analyzer(ast.NodeVisitor):
         
     def visit_If(self, node):
         self.branches[node] = get_branches(node)
+        print(f"\n\nANALYZER: IF-NODE({node.test.lineno})")
         for branch in self.branches[node]:
                 print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
                 if branch.test is None:
@@ -114,7 +115,7 @@ class Analyzer(ast.NodeVisitor):
                     del self.branches[node]
                     return
                 
-                print(f"ANALYZER: BRANCH({branch.body[0].lineno-1}) RECOGNISED BY: {type(self.patterns[branch]).__name__}")
+                print(f"ANALYZER: BRANCH({branch.body[0].lineno-1}) RECOGNISED BY: {type(self.patterns[branch]).__name__}\n")
 
         # An if-node can be transformed, if all of its branches are recognised patterns, and these patterns can all recognise the same subject.
         # Intersecting the possible subjects for each branch
