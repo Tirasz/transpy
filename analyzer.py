@@ -148,9 +148,15 @@ class Analyzer(ast.NodeVisitor):
                     print(f"ANALYZER: BRANCH({branch.body[0].lineno-1}) COULD BE FLATTENED: ")
                     for subBranch in branch.flat:
                         print(f"{ast.unparse(subBranch.test)} --> {len(subBranch.body)}")
-                        for idk in subBranch.body:
-                            print(ast.unparse(idk))
-                        print("-"*10)
+                        for pattern in Analyzer.Patterns:
+                            curr_pattern = pattern()
+                            if curr_pattern.visit(subBranch.test):
+                                self.patterns[subBranch] = curr_pattern
+                                print(f"ANALYZER: ({ast.unparse(subBranch.test)}) RECOGNISED BY: {type(curr_pattern).__name__}")
+                                break
+                        if subBranch not in self.patterns.keys():
+                            branch.flat = None
+
 
                 if branch.test is None:
                     print(f"ANALYZER: TEST IS NONE. SKIPPING")
@@ -189,6 +195,17 @@ class Analyzer(ast.NodeVisitor):
         self.subjects[node] = potential_subjects.pop()
         print(f"ANALYZER: IF-NODE AT ({node.test.lineno}) HAS POTENTIAL SUBJECT: ({ast.unparse(self.subjects[node])})")
 
+        for branch in self.branches[node]:
+            if branch.flat is not None:
+                for subBranch in branch.flat:
+                    flag = False
+                    for pot_subject in self.patterns[subBranch].potential_subjects():
+                        if pot_subject == self.subjects[node]:
+                            flag = True
+                            break
+                    if not flag:
+                        branch.flat = None
+                        break
 
 def main():
     Analyzer.Patterns = tuple(load_patterns())
@@ -204,14 +221,25 @@ def main():
             _cases = []
             out.write("#" + "-"*10 + str(ifNode.lineno) + "-"*10 + f"[{type(subjectNode).__name__}]" +"\n")
             for branch in analyzer.branches[ifNode]:
-                if branch.test is not None:
+                if branch.flat is not None:
+                    for subBranch in branch.flat:
+                        print(f"FLATTENED SUBBRANCH: {ast.unparse(subBranch.test)}")
+                        if subBranch.test is not None:
+                            pattern = analyzer.patterns[subBranch]
+                            transformed_branch = ast.match_case(pattern = pattern.transform(subjectNode), guard = pattern.guard(subjectNode), body = subBranch.body)
+                        else:
+                            transformed_branch = ast.match_case(pattern = ast.MatchAs(), guard = None, body = subBranch.body)
+                       
+                        _cases.append(transformed_branch)
+                elif branch.test is not None:
                     pattern = analyzer.patterns[branch]
                     transformed_branch = ast.match_case(pattern = pattern.transform(subjectNode), guard = pattern.guard(subjectNode), body = branch.body)
+                    _cases.append(transformed_branch)
                 else:
                     transformed_branch = ast.match_case(pattern = ast.MatchAs(), guard = None, body = branch.body)
+                    _cases.append(transformed_branch)
 
-                _cases.append(transformed_branch)
-
+                
             transformed_node = ast.Match(subject = subjectNode, cases = _cases)
             out.write(ast.unparse(transformed_node) + "\n")
 
