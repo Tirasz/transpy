@@ -113,7 +113,6 @@ def flatten(branch):
     if branch.test is None or len(branch.nested_Ifs.keys()) != 1:
         return None
 
-
     # TODO: config for rejecting
     # Strict: No multiple nested If-nodes, no Pre and Post nest blocks
     # Normal: No multiple nested If-nodes, Pre and Post nest blocks upper limit on number of lines

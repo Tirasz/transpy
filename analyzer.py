@@ -44,9 +44,10 @@ class Analyzer(ast.NodeVisitor):
                     print(f"ANALYZER: TEST IS NONE. SKIPPING")
                     continue
 
-                if len(branch.nested_Ifs.keys()) > 1: # If the branch has more than one nested If-nodes, try to transform them too
-                    self.generic_visit(branch.body)
-                
+                if flatten(branch) is None : # If the branch has more than one nested If-nodes, or cannot be flattened (TODO config), try to transform them too
+                    print(f"ANALYZER: BRANCH CANNOT BE FLATTENED")
+                    self.generic_visit(ast.Module(body = branch.body))
+
                 # Determine the main pattern of the branch
                 branch_pattern = self.recognise_Branch(branch)
                 if branch_pattern is None: # If no pattern recognises the branch, then delete the whole if node from the dict and return.
