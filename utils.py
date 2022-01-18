@@ -55,7 +55,7 @@ class Branch:
             if isinstance(node, ast.If):
                 self.nested_Ifs[node] = get_branches(node)
 
-    def get_preNest(self, nested_IfNode):
+    def _get_preNest(self, nested_IfNode):
         """Returns a list of nodes from the branches body, that appear before the given nested If-node"""
         if not isinstance(nested_IfNode, ast.If) or nested_IfNode not in self.nested_Ifs.keys():
             raise ValueError(f"Given If-node: ({ast.unparse(nested_IfNode.test)}) is not nested inside this branch: ({ast.unparse(self.test)})")
@@ -68,7 +68,7 @@ class Branch:
                 preNest.append(self.body[i])
         return preNest
 
-    def get_postNest(self, nested_IfNode):
+    def _get_postNest(self, nested_IfNode):
         """Returns a list of nodes from the branches body, that appear after the given nested If-node"""
         if not isinstance(nested_IfNode, ast.If) or nested_IfNode not in self.nested_Ifs.keys():
             raise ValueError(f"Given If-node: ({ast.unparse(nested_IfNode.test)}) is not nested inside this branch: ({ast.unparse(self.test)})")
@@ -83,7 +83,6 @@ class Branch:
                 postNest.append(self.body[i])
         return postNest
 
-    
 
 def get_branches(node) :
     """Returns a list of Branches for each branch of the given 'If' node"""
@@ -109,30 +108,31 @@ def get_branches(node) :
 
 def flatten(branch):
     """Tries to flatten the branch. Returns a list of the flattened sub-branches. Return None if flattening is not possible. """
-    if branch.test is None:
+    # Cannot 'flatten' else: branches
+    # Also, reject branches that have no nested If-nodes 
+    if branch.test is None or len(branch.nested_Ifs.keys()) == 0:
         return None
-        
-    preNest = []
-    postNest = []
-    nestedIf = None
-    for node in branch.body:
-        # Looping through every node in the branches body
-        if isinstance(node, ast.If): # An If-node is found
-            if nestedIf is not None: # If its not the only nested If-node
-                return None
+
+
+    # TODO: config for rejecting
+    # Strict: No multiple nested If-nodes, no Pre and Post nest blocks
+    # Normal: No multiple nested If-nodes, Pre and Post nest blocks upper limit on number of lines
+    # Loose: Multiple nested If-nodes, no limit on Pre and Post nest blocks 
+
+    largest = -1
+    nestedIf = list(branch.nested_Ifs.keys())[0] 
+    # Selecting the 'largest' nested If-node. --> minimizing Pre and Post nest blocks length
+    for node in branch.nested_Ifs.keys():
+        lineCount = count_lines(node)
+        if lineCount > largest:
+            largest = lineCount
             nestedIf = node
-            continue
-
-        if nestedIf is None: # node is not an If-node, and we havent found one yet
-            preNest.append(node)
-        else:
-            postNest.append(node) # node is not an If-node, and we have already found one
-
-    if nestedIf is None:
-        return None
+  
+    preNest = branch._get_PreNest(nestedIf)
+    postNest = branch._get_PostNest(nestedIf)
 
     mainTest = branch.test
-    nestedBranches = get_branches(nestedIf)
+    nestedBranches = branch.nested_Ifs[nestedIf]
     flattened = []
 
     for branch in nestedBranches:
@@ -144,3 +144,26 @@ def flatten(branch):
         flattened.append(Branch(newBody, newTest))
     
     return flattened
+
+class LineCounter(ast.NodeVisitor):
+    """ast visitor that counts how many nodes have a lineno attr in the tree. """
+    # Credit: https://codereview.stackexchange.com/questions/165996/counting-density-of-python-code
+    def __init__(self):
+        self.line_numbers = set()
+
+    def visit(self, node):
+        try:
+            self.line_numbers.add(node.lineno)
+        except AttributeError:
+            pass
+        self.generic_visit(node)
+
+def count_lines(nodes):
+    """Counts how many lines the given node takes up. Input can be a list of nodes, or a single node."""
+    if isinstance(nodes, list):
+        mockModule = ast.Module(body = nodes)
+    else:
+        mockModule = ast.Module(body = [nodes])
+    counter = LineCounter()
+    counter.visit(mockModule)
+    return len(counter.line_numbers)
