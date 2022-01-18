@@ -120,8 +120,8 @@ def flatten(branch):
     # Loose: No multiple nested If-nodes, no limit on Pre and Post nest blocks 
 
     nestedIf = list(branch.nested_Ifs.keys())[0] 
-    preNest = branch._get_PreNest(nestedIf)
-    postNest = branch._get_PostNest(nestedIf)
+    preNest = branch._get_preNest(nestedIf)
+    postNest = branch._get_postNest(nestedIf)
 
     mainTest = branch.test
     nestedBranches = branch.nested_Ifs[nestedIf]
