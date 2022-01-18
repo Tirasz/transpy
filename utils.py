@@ -63,9 +63,10 @@ class Branch:
         preNest = []
         for i in range(len(self.body)):
             if self.body[i] == nested_IfNode:
-                return preNest
+                break
             else:
                 preNest.append(self.body[i])
+        return preNest
 
     def get_postNest(self, nested_IfNode):
         """Returns a list of nodes from the branches body, that appear after the given nested If-node"""
@@ -110,6 +111,7 @@ def flatten(branch):
     """Tries to flatten the branch. Returns a list of the flattened sub-branches. Return None if flattening is not possible. """
     if branch.test is None:
         return None
+        
     preNest = []
     postNest = []
     nestedIf = None

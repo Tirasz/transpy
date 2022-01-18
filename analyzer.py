@@ -1,4 +1,5 @@
 import ast
+
 def custom_hash(self):
     return hash(ast.dump(self))
 
@@ -7,13 +8,8 @@ def custom_eq(self, other):
 
 ast.AST.__hash__ = custom_hash
 ast.AST.__eq__ = custom_eq
+
 from utils import get_branches, load_patterns
-
-
-
-
-
-
 
 
 class Analyzer(ast.NodeVisitor):
@@ -41,36 +37,20 @@ class Analyzer(ast.NodeVisitor):
         print(f"\n\nANALYZER: IF-NODE({node.test.lineno})")
         for branch in self.branches[node]:
                 print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
-                branch.flat = flatten(branch)
-                if branch.flat is not None:
-                    print(f"ANALYZER: BRANCH({branch.body[0].lineno-1}) COULD BE FLATTENED: ")
-                    for subBranch in branch.flat:
-                        print(f"{ast.unparse(subBranch.test)} --> {len(subBranch.body)}")
-                        for pattern in Analyzer.Patterns:
-                            curr_pattern = pattern()
-                            if curr_pattern.visit(subBranch.test):
-                                self.patterns[subBranch] = curr_pattern
-                                print(f"ANALYZER: ({ast.unparse(subBranch.test)}) RECOGNISED BY: {type(curr_pattern).__name__}")
-                                break
-                        if subBranch not in self.patterns.keys():
-                            branch.flat = None
 
-
+                # Skipping trivial 'else:' branches.
                 if branch.test is None:
                     print(f"ANALYZER: TEST IS NONE. SKIPPING")
                     continue
 
-                # Checking nested If-nodes
-
-
                 # Determine the main pattern of the branch
                 branch_pattern = self.recognise_Branch(branch)
-
-                if branch_pattern is not None:
-                    self.patterns[branch] = branch_pattern
-                else:  # If no pattern recognises the branch, then delete the whole if node from the dict and return
+                if branch_pattern is None: # If no pattern recognises the branch, then delete the whole if node from the dict and return.
                     del self.branches[node]
                     return
+                
+                self.patterns[branch] = branch_pattern
+
                 
 
         # An if-node can be transformed, if all of its branches are recognised patterns, and these patterns can all recognise the same subject.
