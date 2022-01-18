@@ -32,6 +32,7 @@ class GuardPattern():
         # At least one term is recognised
 
         #Checking for complex patterns
+        # TODO: maybe not like this
         for pattern in self.terms:
             if pattern.IsComplex:
                 pattern.process(self)

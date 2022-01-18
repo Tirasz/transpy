@@ -1,5 +1,5 @@
 import ast
-
+# TODO maybe not like this
 def custom_hash(self):
     return hash(ast.dump(self))
 
