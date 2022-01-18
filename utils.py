@@ -50,7 +50,39 @@ class Branch:
     def __init__(self, body, test = None):
         self.test = test
         self.body = body
-        self.flat = None
+        self.nested_Ifs = {} # Mapping every nested If-node to its list of branches
+        for node in self.body:
+            if isinstance(node, ast.If):
+                self.nested_Ifs[node] = get_branches(node)
+
+    def get_preNest(self, nested_IfNode):
+        """Returns a list of nodes from the branches body, that appear before the given nested If-node"""
+        if not isinstance(nested_IfNode, ast.If) or nested_IfNode not in self.nested_Ifs.keys():
+            raise ValueError(f"Given If-node: ({ast.unparse(nested_IfNode.test)}) is not nested inside this branch: ({ast.unparse(self.test)})")
+        
+        preNest = []
+        for i in range(len(self.body)):
+            if self.body[i] == nested_IfNode:
+                return preNest
+            else:
+                preNest.append(self.body[i])
+
+    def get_postNest(self, nested_IfNode):
+        """Returns a list of nodes from the branches body, that appear after the given nested If-node"""
+        if not isinstance(nested_IfNode, ast.If) or nested_IfNode not in self.nested_Ifs.keys():
+            raise ValueError(f"Given If-node: ({ast.unparse(nested_IfNode.test)}) is not nested inside this branch: ({ast.unparse(self.test)})")
+
+        postNest = []
+        flag = False
+        for i in range(len(self.body)):
+            if self.body[i] == nested_IfNode:
+                flag = True
+                continue
+            if flag:
+                postNest.append(self.body[i])
+        return postNest
+
+    
 
 def get_branches(node) :
     """Returns a list of Branches for each branch of the given 'If' node"""
