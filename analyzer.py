@@ -9,7 +9,7 @@ def custom_eq(self, other):
 ast.AST.__hash__ = custom_hash
 ast.AST.__eq__ = custom_eq
 
-from utils import get_branches, load_patterns
+from utils import get_branches, load_patterns, flatten
 
 
 class Analyzer(ast.NodeVisitor):
@@ -35,6 +35,7 @@ class Analyzer(ast.NodeVisitor):
     def visit_If(self, node):
         self.branches[node] = get_branches(node)
         print(f"\n\nANALYZER: IF-NODE({node.test.lineno})")
+
         for branch in self.branches[node]:
                 print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
 
@@ -43,6 +44,9 @@ class Analyzer(ast.NodeVisitor):
                     print(f"ANALYZER: TEST IS NONE. SKIPPING")
                     continue
 
+                if len(branch.nested_Ifs.keys()) > 1: # If the branch has more than one nested If-nodes, try to transform them too
+                    self.generic_visit(branch.body)
+                
                 # Determine the main pattern of the branch
                 branch_pattern = self.recognise_Branch(branch)
                 if branch_pattern is None: # If no pattern recognises the branch, then delete the whole if node from the dict and return.
