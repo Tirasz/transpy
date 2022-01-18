@@ -109,25 +109,17 @@ def get_branches(node) :
 def flatten(branch):
     """Tries to flatten the branch. Returns a list of the flattened sub-branches. Return None if flattening is not possible. """
     # Cannot 'flatten' else: branches
-    # Also, reject branches that have no nested If-nodes 
-    if branch.test is None or len(branch.nested_Ifs.keys()) == 0:
+    # Also, reject branches that have more (or less) than one nested If-node 
+    if branch.test is None or len(branch.nested_Ifs.keys()) != 1:
         return None
 
 
     # TODO: config for rejecting
     # Strict: No multiple nested If-nodes, no Pre and Post nest blocks
     # Normal: No multiple nested If-nodes, Pre and Post nest blocks upper limit on number of lines
-    # Loose: Multiple nested If-nodes, no limit on Pre and Post nest blocks 
+    # Loose: No multiple nested If-nodes, no limit on Pre and Post nest blocks 
 
-    largest = -1
     nestedIf = list(branch.nested_Ifs.keys())[0] 
-    # Selecting the 'largest' nested If-node. --> minimizing Pre and Post nest blocks length
-    for node in branch.nested_Ifs.keys():
-        lineCount = count_lines(node)
-        if lineCount > largest:
-            largest = lineCount
-            nestedIf = node
-  
     preNest = branch._get_PreNest(nestedIf)
     postNest = branch._get_PostNest(nestedIf)
 
