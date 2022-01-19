@@ -50,6 +50,7 @@ class Branch:
     def __init__(self, body, test = None):
         self.test = test
         self.body = body
+        self.flat = False
         self.nested_Ifs = {} # Mapping every nested If-node to its list of branches
         for node in self.body:
             if isinstance(node, ast.If):
@@ -121,7 +122,8 @@ def flatten(branch):
     nestedIf = list(branch.nested_Ifs.keys())[0] 
     preNest = branch._get_preNest(nestedIf)
     postNest = branch._get_postNest(nestedIf)
-
+    if len(preNest) > 0 or len(postNest) > 0:
+        return None
     mainTest = branch.test
     nestedBranches = branch.nested_Ifs[nestedIf]
     flattened = []
@@ -132,7 +134,9 @@ def flatten(branch):
         if branch.test is not None:
             newTest.values.append(branch.test)
             newTest = simplify(newTest)
-        flattened.append(Branch(newBody, newTest))
+        newBranch = Branch(newBody, newTest)
+        newBranch.mainTest = mainTest
+        flattened.append(newBranch)
     
     return flattened
 

@@ -36,20 +36,14 @@ class Analyzer(ast.NodeVisitor):
         self.branches[node] = get_branches(node)
         print(f"\n\nANALYZER: IF-NODE({node.test.lineno})")
 
+        # Looping through the If-nodes branches
         for branch in self.branches[node]:
                 print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
-
+                
                 # Skipping trivial 'else:' branches.
                 if branch.test is None:
                     print(f"ANALYZER: TEST IS NONE. SKIPPING")
                     continue
-                
-                subBranches = flatten(branch)
-                if subBranches is None : # If the branch has more than one nested If-nodes, or cannot be flattened (TODO config), try to transform them too
-                    print(f"ANALYZER: BRANCH CANNOT BE FLATTENED")
-                    self.generic_visit(ast.Module(body = branch.body))
-                else: # Have to determine which version to transform: flattened, or base
-                    pass # TODO
                 
                 # Determine the main pattern of the branch
                 branch_pattern = self.recognise_Branch(branch)
@@ -78,6 +72,36 @@ class Analyzer(ast.NodeVisitor):
         self.subjects[node] = potential_subjects.pop()
         print(f"ANALYZER: IF-NODE AT ({node.test.lineno}) HAS POTENTIAL SUBJECT: ({ast.unparse(self.subjects[node])})")
 
+        for branch in self.branches[node]:
+                # Checking nested If-nodes
+                subBranches = flatten(branch)
+                if subBranches is None : # If the branch has more than one nested If-nodes, or cannot be flattened (TODO config), try to transform them too
+                    print(f"ANALYZER: BRANCH({branch.body[0].lineno}) CANNOT BE FLATTENED")
+                    self.generic_visit(ast.Module(body = branch.body))
+                else: # Have to determine which version to transform: flattened, or base
+                        # TODO: config 
+                        # Strict: Only choose flat version if no branch is "ugly"
+                        # Normal: Require at least one branch that isnt "ugly"
+                        # Loose: Always choose flat
+                        isUgly = False
+                        for subBranch in subBranches:
+                            pattern = self.recognise_Branch(subBranch) # Guaranteed to be GuardPattern
+                            self.patterns[subBranch] = pattern
+                            # Flattened branches tests always look like: BoolOp(And(), [mainTest, (nestedTest)*])
+                            # Have to check if the patterns guard == nestedTest (if nestedTest is not None)
+                            # Guard looks like: BoolOp(And(), [values])
+                            guard = pattern.guard(self.subjects[node])
+                            if guard is not None:
+                                guardList = guard.values
+                                temp = subBranch.test.values.copy()
+                                temp.remove(subBranch.mainTest)
+                                if temp == guardList: # Found ugly branch
+                                    isUgly = True
+                                    break
+                        if not isUgly:
+                            branch.flat = subBranches
+                            
+
 
 def main():
     Analyzer.Patterns = tuple(load_patterns())
@@ -93,7 +117,12 @@ def main():
             _cases = []
             out.write("#" + "-"*10 + str(ifNode.lineno) + "-"*10 + f"[{type(subjectNode).__name__}]" +"\n")
             for branch in analyzer.branches[ifNode]:
-                if branch.test is not None:
+                if branch.flat:
+                    for subBranch in branch.flat:
+                        pattern = analyzer.patterns[subBranch]
+                        transformed_branch = ast.match_case(pattern = pattern.transform(subjectNode), guard = pattern.guard(subjectNode), body = subBranch.body)
+                        _cases.append(transformed_branch)
+                elif branch.test is not None:
                     pattern = analyzer.patterns[branch]
                     transformed_branch = ast.match_case(pattern = pattern.transform(subjectNode), guard = pattern.guard(subjectNode), body = branch.body)
                     _cases.append(transformed_branch)
