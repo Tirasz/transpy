@@ -1,7 +1,7 @@
 import ast
 from copy import deepcopy
-from analyzer import Analyzer
-from utils import count_lines
+from analyzer.utils import count_lines
+from analyzer.analyzer import Analyzer
 class Transformer(ast.NodeVisitor):
 
     def __init__(self):

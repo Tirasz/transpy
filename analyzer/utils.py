@@ -2,7 +2,7 @@ import ast
 import importlib
 import pkgutil
 import inspect
-import patterns
+import analyzer.patterns as patterns
 
 def load_patterns():
     """Returns a list of valid pattern classes"""

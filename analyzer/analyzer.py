@@ -9,7 +9,7 @@ def custom_eq(self, other):
 ast.AST.__hash__ = custom_hash
 ast.AST.__eq__ = custom_eq
 
-from utils import get_branches, load_patterns, flatten
+from analyzer.utils import get_branches, load_patterns, flatten
 
 
 class Analyzer(ast.NodeVisitor):
