@@ -9,7 +9,7 @@ def custom_eq(self, other):
 ast.AST.__hash__ = custom_hash
 ast.AST.__eq__ = custom_eq
 
-from utils import get_branches, load_patterns, flatten, Parentage
+from utils import get_branches, load_patterns, flatten
 
 
 class Analyzer(ast.NodeVisitor):
@@ -29,13 +29,15 @@ class Analyzer(ast.NodeVisitor):
         self.branches = {} # Mapping If-nodes to a list of its branches. !!Only contains transformable if-nodes!!
         self.patterns = {} # Mapping branches to a pattern
         self.subjects = {} # Mapping the If-node to its selected subject !!Only contains transformable if-nodes!!
-        for pattern in Analyzer.Patterns:
-            pattern.Patterns = Analyzer.Patterns
+        if Analyzer.Patterns is None:
+            Analyzer.Patterns = tuple(load_patterns())
+            for pattern in Analyzer.Patterns:
+                pattern.Patterns = Analyzer.Patterns
         
     def visit_If(self, node):
         self.branches[node] = get_branches(node)
         print(f"\n\nANALYZER: IF-NODE({node.test.lineno})")
-
+        
         # Looping through the If-nodes branches
         for branch in self.branches[node]:
                 print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
@@ -75,10 +77,7 @@ class Analyzer(ast.NodeVisitor):
         for branch in self.branches[node]:
                 # Checking nested If-nodes
                 subBranches = flatten(branch)
-                if subBranches is None : # If the branch has more than one nested If-nodes, or cannot be flattened (TODO config), try to transform them too
-                    print(f"ANALYZER: BRANCH({branch.body[0].lineno}) CANNOT BE FLATTENED")
-                    self.generic_visit(ast.Module(body = branch.body))
-                else: # Have to determine which version to transform: flattened, or base
+                if subBranches is not None: # Have to determine which version to transform: flattened, or base
                         # TODO: config 
                         # Strict: Only choose flat version if no branch is "ugly"
                         # Normal: Require at least one branch that isnt "ugly"
@@ -100,44 +99,12 @@ class Analyzer(ast.NodeVisitor):
                                     break
                         if not isUgly:
                             branch.flat = subBranches
-                        else:
-                            print(f"ANALYZER: BRANCH({branch.body[0].lineno}) CANNOT BE FLATTENED --> UGLY!")
-                            self.generic_visit(ast.Module(body = branch.body))
+
                             
 
 
 def main():
-    Analyzer.Patterns = tuple(load_patterns())
-    
-    with open("test.py", "r") as src:
-        tree = Parentage().visit(ast.parse(src.read()))
-
-
-    analyzer = Analyzer()    
-    analyzer.visit(tree)
-    with open("transformed.py", "w") as out:
-        for ifNode, subjectNode in analyzer.subjects.items():
-            _cases = []
-            out.write("#" + "-"*10 + str(ifNode.lineno) + "-"*10 + f"[{type(subjectNode).__name__}]" +"\n")
-            if hasattr(ifNode.parent, "lineno"):
-                out.write(f"# Parent: ({type(ifNode.parent).__name__}) at ({ifNode.parent.lineno if ifNode.parent.lineno is not None else 0})\n")
-            for branch in analyzer.branches[ifNode]:
-                if branch.flat:
-                    for subBranch in branch.flat:
-                        pattern = analyzer.patterns[subBranch]
-                        transformed_branch = ast.match_case(pattern = pattern.transform(subjectNode), guard = pattern.guard(subjectNode), body = subBranch.body)
-                        _cases.append(transformed_branch)
-                elif branch.test is not None:
-                    pattern = analyzer.patterns[branch]
-                    transformed_branch = ast.match_case(pattern = pattern.transform(subjectNode), guard = pattern.guard(subjectNode), body = branch.body)
-                    _cases.append(transformed_branch)
-                else:
-                    transformed_branch = ast.match_case(pattern = ast.MatchAs(), guard = None, body = branch.body)
-                    _cases.append(transformed_branch)
-
-                
-            transformed_node = ast.Match(subject = subjectNode, cases = _cases)
-            out.write(ast.unparse(transformed_node) + "\n")
+    pass
 
 
 
