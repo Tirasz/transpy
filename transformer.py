@@ -67,7 +67,7 @@ class Transformer(ast.NodeTransformer):
 def main():
     tr = Transformer()
     tr.transform("test.py", "test.py")
-
+    #test
 
 if __name__ == "__main__":
     main()
