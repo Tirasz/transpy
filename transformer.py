@@ -2,7 +2,7 @@ import ast
 from copy import deepcopy
 from analyzer.utils import count_lines
 from analyzer.analyzer import Analyzer
-class Transformer(ast.NodeVisitor):
+class Transformer(ast.NodeTransformer):
 
     def __init__(self):
         self.analyzer = Analyzer()
@@ -28,7 +28,9 @@ class Transformer(ast.NodeVisitor):
                     self.generic_visit(temp)
                     transformed_branch = ast.match_case(pattern = _pattern, guard = _guard, body = temp.body)
                     _cases.append(transformed_branch)
-            self.results[node.test.lineno-1] = ast.Match(subject = subjectNode, cases = _cases) 
+            result = ast.Match(subject = subjectNode, cases = _cases) 
+            self.results[node.test.lineno-1] = result
+            return result
         else:
             temp = ast.Module(body = node.body)
             self.generic_visit(temp)
