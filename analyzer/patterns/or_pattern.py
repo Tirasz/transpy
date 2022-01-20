@@ -19,7 +19,7 @@ class OrPattern():
                 curr_pattern = pattern()
                 if curr_pattern.visit(value):
                     self.terms.append(curr_pattern)
-                    print(f"PATTERN: ({ast.unparse(value)}) RECOGNISED BY: {type(curr_pattern).__name__}")
+                    #print(f"PATTERN: ({ast.unparse(value)}) RECOGNISED BY: {type(curr_pattern).__name__}")
                     break
                 
         if len(node.values) != len(self.terms):

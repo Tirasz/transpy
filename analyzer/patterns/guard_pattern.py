@@ -22,7 +22,7 @@ class GuardPattern():
                 curr_pattern = pattern()
                 if curr_pattern.visit(value):
                     self.terms.append(curr_pattern)
-                    print(f"PATTERN: ({ast.unparse(value)}) RECOGNISED BY: {type(curr_pattern).__name__}")
+                    #print(f"PATTERN: ({ast.unparse(value)}) RECOGNISED BY: {type(curr_pattern).__name__}")
                     break
             
             self._guard.append(value)
@@ -36,11 +36,11 @@ class GuardPattern():
         for pattern in self.terms:
             if pattern.IsComplex:
                 pattern.process(self)
-                print(f"PATTERN: RETURNED FROM COMPLEX CALL.")
+                #print(f"PATTERN: RETURNED FROM COMPLEX CALL.")
                 break
         
-        print(f"\tREMAINING TERMS:\n\t{[str(term) for term in self.terms]}")
-        print(f"\tREMAINING GUARD:\n\t{[ast.unparse(t) for t in self._guard]}")
+        #print(f"\tREMAINING TERMS:\n\t{[str(term) for term in self.terms]}")
+        #print(f"\tREMAINING GUARD:\n\t{[ast.unparse(t) for t in self._guard]}")
         self._potential_subjects = self.terms[0].potential_subjects().copy()
         # Unioning every terms potential subjects.
         for term in self.terms:
@@ -63,7 +63,7 @@ class GuardPattern():
     def guard(self, subject):
         # self._guard contains all the terms by default
         # this returns the terms that are not recognised, and the ones that dont have the given subject
-        print(f"PATTERN: GUARD: {[ast.unparse(t) for t in self._guard]}")
+        #print(f"PATTERN: GUARD: {[ast.unparse(t) for t in self._guard]}")
         if len(self._guard) == 0:
             return None
         res = []

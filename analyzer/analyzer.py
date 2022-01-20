@@ -20,9 +20,9 @@ class Analyzer(ast.NodeVisitor):
         for pattern in Analyzer.Patterns:
             curr_pattern = pattern()
             if curr_pattern.visit(branch.test):
-                print(f"ANALYZER: ({ast.unparse(branch.test)}) RECOGNISED BY: {type(curr_pattern).__name__}")
+                #print(f"ANALYZER: ({ast.unparse(branch.test)}) RECOGNISED BY: {type(curr_pattern).__name__}")
                 return curr_pattern
-        print(f"ANALYZER: NO PATTERN RECOGNISES: ({ast.unparse(branch.test)})")
+        #print(f"ANALYZER: NO PATTERN RECOGNISES: ({ast.unparse(branch.test)})")
         return None
 
     def __init__(self):
@@ -36,15 +36,15 @@ class Analyzer(ast.NodeVisitor):
         
     def visit_If(self, node):
         self.branches[node] = get_branches(node)
-        print(f"\n\nANALYZER: IF-NODE({node.test.lineno})")
+        #print(f"\n\nANALYZER: IF-NODE({node.test.lineno})")
         
         # Looping through the If-nodes branches
         for branch in self.branches[node]:
-                print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
+                #print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
                 
                 # Skipping trivial 'else:' branches.
                 if branch.test is None:
-                    print(f"ANALYZER: TEST IS NONE. SKIPPING")
+                    #print(f"ANALYZER: TEST IS NONE. SKIPPING")
                     continue
                 
                 # Determine the main pattern of the branch
@@ -62,17 +62,18 @@ class Analyzer(ast.NodeVisitor):
         potential_subjects = self.patterns[self.branches[node][0]].potential_subjects().copy()
         # Skipping "else:" branch
         for branch in [b for b in self.branches[node] if b.test is not None]:
-            print(f"ANALYZER: POTENTIAL SUBJECTS FOR BRANCH({branch.body[0].lineno-1}): {[ast.unparse(x) for x in self.patterns[branch].potential_subjects()]}")
+            #print(f"ANALYZER: POTENTIAL SUBJECTS FOR BRANCH({branch.body[0].lineno-1}): {[ast.unparse(x) for x in self.patterns[branch].potential_subjects()]}")
             potential_subjects = potential_subjects.intersection(self.patterns[branch].potential_subjects())
  
         if len(potential_subjects) == 0:
-            print(f"ANALYZER: NO COMMON SUBJECT FOR IF-NODE AT: ({node.test.lineno})")
+            #print(f"ANALYZER: NO COMMON SUBJECT FOR IF-NODE AT: ({node.test.lineno})")
             del self.branches[node]
             return
         elif len(potential_subjects) > 1:
-            print(f"ANALYZER: MORE THAN ONE COMMON SUBJECT FOR IF-NODE AT: ({node.test.lineno})")
+            #print(f"ANALYZER: MORE THAN ONE COMMON SUBJECT FOR IF-NODE AT: ({node.test.lineno})")
+            pass
         self.subjects[node] = potential_subjects.pop()
-        print(f"ANALYZER: IF-NODE AT ({node.test.lineno}) HAS POTENTIAL SUBJECT: ({ast.unparse(self.subjects[node])})")
+        #print(f"ANALYZER: IF-NODE AT ({node.test.lineno}) HAS POTENTIAL SUBJECT: ({ast.unparse(self.subjects[node])})")
 
         for branch in self.branches[node]:
                 # Checking nested If-nodes

@@ -40,12 +40,12 @@ class ClassPattern:
         if(self.node in parentPattern._guard):
             parentPattern._guard.remove(self.node)
         
-        print(f"PATTERN: LOOKING FOR ATTRIBUTES FOR: ({ast.unparse(subject_node)})")
+        #print(f"PATTERN: LOOKING FOR ATTRIBUTES FOR: ({ast.unparse(subject_node)})")
         temp = parentPattern.terms.copy()
         for term in temp:
             for term_subject in term.potential_subjects():
                 if is_attribute_of(term_subject, subject_node):
-                    print(f"\tFOUND: {type(term).__name__}({ast.unparse(term_subject)})")
+                    #print(f"\tFOUND: {type(term).__name__}({ast.unparse(term_subject)})")
                     if term.IsComplex:
                         term.process(parentPattern)
                     self.kwd_attribtues.append(term_subject.attr)

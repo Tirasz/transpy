@@ -9,7 +9,7 @@ class Transformer(ast.NodeVisitor):
         self.lines = {} # Mapping the linenos of the original If-nodes to their length
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
     def visit_If(self, node):
-        print(f"TRANSFORMER: NODE({node.test.lineno})")
+        #print(f"TRANSFORMER: NODE({node.test.lineno})")
         self.analyzer.visit(node)
         if node in self.analyzer.subjects.keys():
             self.lines[node.test.lineno-1] = count_lines(node) +1
@@ -40,12 +40,10 @@ class Transformer(ast.NodeVisitor):
             src.seek(0)
             lines = src.readlines()
             self.visit(tree)
-            for k in range(len(lines)):
-                print(len(lines[k]))
             i = 0
             while i < len(lines):
                 if i in self.results.keys():
-                    print(f"INSIDE IF AT {lines[i]} -- JUMPING TO: {lines[i+self.lines[i]]}")
+                    #print(f"INSIDE IF AT {lines[i]} -- JUMPING TO: {lines[i+self.lines[i]]}")
                     out.write(ast.unparse(self.results[i]) + "\n")
                     i += self.lines[i] 
                 else:
@@ -58,8 +56,6 @@ class Transformer(ast.NodeVisitor):
 def main():
     tr = Transformer()
     tr.transform("test.py", "transformed.py")
-    for startLine, length in tr.lines.items():
-        print(f"IFNODE STARTS AT ({startLine}), ENDS AT ({startLine+length}) --> LENGTH: {length}")
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ def load_patterns():
             #print(f"PLUGIN TEST: {name} : {cls}")
             if issubclass(cls, patterns.Base.PatternBase):
                 result.append(cls)
-                print(f"LOAD_PATTERN: {name} succesfully loaded!")
+                #print(f"{name} succesfully loaded!")
     return result
     
 def _simplify(node, parent):
