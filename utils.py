@@ -162,3 +162,16 @@ def count_lines(nodes):
     counter = LineCounter()
     counter.visit(mockModule)
     return len(counter.line_numbers)
+
+class Parentage(ast.NodeTransformer):
+    """ast transformer, that adds a parent attribute to every node in the tree."""
+    # Credit: https://stackoverflow.com/questions/34570992/getting-parent-of-ast-node-in-python
+    parent = None
+
+    def visit(self, node):
+        node.parent = self.parent
+        self.parent = node
+        node = super().visit(node)
+        if isinstance(node, ast.AST):
+            self.parent = node.parent
+        return node

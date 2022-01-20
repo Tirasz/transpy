@@ -9,7 +9,7 @@ def custom_eq(self, other):
 ast.AST.__hash__ = custom_hash
 ast.AST.__eq__ = custom_eq
 
-from utils import get_branches, load_patterns, flatten
+from utils import get_branches, load_patterns, flatten, Parentage
 
 
 class Analyzer(ast.NodeVisitor):
@@ -100,6 +100,9 @@ class Analyzer(ast.NodeVisitor):
                                     break
                         if not isUgly:
                             branch.flat = subBranches
+                        else:
+                            print(f"ANALYZER: BRANCH({branch.body[0].lineno}) CANNOT BE FLATTENED --> UGLY!")
+                            self.generic_visit(ast.Module(body = branch.body))
                             
 
 
@@ -107,7 +110,7 @@ def main():
     Analyzer.Patterns = tuple(load_patterns())
     
     with open("test.py", "r") as src:
-        tree = ast.parse(src.read())
+        tree = Parentage().visit(ast.parse(src.read()))
 
 
     analyzer = Analyzer()    
@@ -116,6 +119,8 @@ def main():
         for ifNode, subjectNode in analyzer.subjects.items():
             _cases = []
             out.write("#" + "-"*10 + str(ifNode.lineno) + "-"*10 + f"[{type(subjectNode).__name__}]" +"\n")
+            if hasattr(ifNode.parent, "lineno"):
+                out.write(f"# Parent: ({type(ifNode.parent).__name__}) at ({ifNode.parent.lineno if ifNode.parent.lineno is not None else 0})\n")
             for branch in analyzer.branches[ifNode]:
                 if branch.flat:
                     for subBranch in branch.flat:
