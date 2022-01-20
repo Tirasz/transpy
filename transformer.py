@@ -2,6 +2,8 @@ import ast
 from copy import deepcopy
 from analyzer.utils import count_lines
 from analyzer.analyzer import Analyzer
+import os
+
 class Transformer(ast.NodeTransformer):
 
     def __init__(self):
@@ -37,6 +39,10 @@ class Transformer(ast.NodeTransformer):
             node.body = temp.body
 
     def transform(self, inFile, outFile):
+        if inFile == outFile:
+            self.inline_transform(inFile)
+            return
+        
         with open(inFile, "r") as src, open(outFile, "w") as out:
             tree = ast.parse(src.read())
             src.seek(0)
@@ -52,12 +58,15 @@ class Transformer(ast.NodeTransformer):
                     out.write(lines[i])
                 i += 1
                     
-                
-
+    def inline_transform(self, file):
+        self.transform(file, "temp.py")
+        with open("temp.py") as temp, open(file, "w") as f:
+            f.write(temp.read())
+        os.remove("temp.py")
 
 def main():
     tr = Transformer()
-    tr.transform("test.py", "transformed.py")
+    tr.transform("test.py", "test.py")
 
 
 if __name__ == "__main__":
