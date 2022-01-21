@@ -10,7 +10,8 @@ def count_actual_lines(lines, pos):
     res = 1
     pos += 1
     while pos < len(lines):
-        if indentation(lines[pos]) > base_indent:
+        indent = indentation(lines[pos])
+        if indent > base_indent or (indent == base_indent and (lines[pos].strip().startswith("else:") or lines[pos].strip().startswith("elsif"))) or (indent == 0 and not bool(lines[pos].strip())):
             res += 1
             pos += 1
         else:
