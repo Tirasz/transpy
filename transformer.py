@@ -74,45 +74,39 @@ class Transformer(ast.NodeTransformer):
             f.write(temp.read())
         os.remove("temp.py")
 
+def make_copy(path, newPath):
+    prompt = "Overwriting" if newPath.exists() else "Creating"
+    print(f"{prompt} '{newPath}'")
+    if path.is_dir():
+        if newPath.exists():
+            shutil.rmtree(newPath)
+        return shutil.copytree(path, newPath)
+    return shutil.copy(path,newPath)
+
 def main():
     args = parser.parse_args()
-    path = Path(args.path[0])
+    path = Path(args.path[0]).resolve()
     files_to_transform = []
-    overwrite = args.ow
+    ow = args.ow
 
     if not path.exists():
         parser.error("Given path does not exist!")
-    if args.mode == "copy":
-        print("Copying file(s)...")
-        newDir = (path.parent / f"transformed-{path.parts[-1]}").resolve()
-        if path.is_dir():
-            #print(path.parent / f"transformed-{path.parts[-1]}")
-            try:
-                path = shutil.copytree(path, newDir).resolve()
-            except FileExistsError:
-                while not (overwrite == "Y" or overwrite == "N"):
-                    overwrite = input(f">> Directory '{newDir}' already exists! Want to overwrite? (Y/N)\n")
 
-                if overwrite == "Y":
-                    print(f"Overwriting '{newDir}'")
-                    shutil.rmtree(newDir)
-                    path = shutil.copytree(path, newDir).resolve()
-                else:
-                    print("Quitting.")
-                    return
-            files_to_transform = [f for f in path.rglob('*.py') if f.is_file()]
-        else:
-            if newDir.is_file():
-                while not (overwrite == "Y" or overwrite == "N"):
-                    overwrite = input(f">> File '{newDir}' already exists! Want to overwrite? (Y/N)\n")
+    if args.mode == "copy":
+        newPath = (path.parent / f"transformed-{path.parts[-1]}")
+        if newPath.exists():
+            while not (ow == "Y" or ow == "N"):
+                prompt = "Directory" if path.is_dir() else "File"
+                ow = input(f">> {prompt} '{newPath}' already exists! Want to overwrite? (Y/N)\n")
                 
-                if overwrite == "Y":
-                    print(f"Overwriting '{newDir}'")
-                else:
-                    print("Quitting.")
-                    return
-            path = shutil.copy(path,newDir).resolve()
-            files_to_transform = [path]
+            if ow == "N":
+                print("Quitting")
+                return
+        path = make_copy(path, newPath)
+
+    
+    files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
+ 
     print("The following file(s) will be transformed:")
     for i in range(len(files_to_transform)):
         print(f"{files_to_transform[i]}")
