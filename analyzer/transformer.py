@@ -1,6 +1,12 @@
 import ast
+from analyzer import Analyzer
 from analyzer.utils import count_lines
+import os
+from pathlib import Path
 
+def indentation(s, tabsize=4):
+    sx = s.expandtabs(tabsize)
+    return 0 if sx.isspace() else len(sx) - len(sx.lstrip())
 
 class Transformer(ast.NodeTransformer):
 
@@ -49,15 +55,20 @@ class Transformer(ast.NodeTransformer):
             i = 0
             while i < len(lines):
                 if i in self.results.keys():
+                    indent = indentation(lines[i])
                     #print(f"INSIDE IF AT {lines[i]} -- JUMPING TO: {lines[i+self.lines[i]]}")
-                    out.write(ast.unparse(self.results[i]) + "\n")
+                    res = ast.unparse(self.results[i]).splitlines()
+                    for newLine in res:
+                        out.write(indent * " " + newLine + "\n")
+                    #out.write("\n")
                     i += self.lines[i] 
                 else:
                     out.write(lines[i])
                 i += 1
                     
     def inline_transform(self, file):
-        self.transform(file, "temp.py")
-        with open("temp.py") as temp, open(file, "w") as f:
+        tempFile = (file.parent / f"temp-{file.parts[-1]}")
+        self.transform(file, tempFile)
+        with open(tempFile) as temp, open(file, "w") as f:
             f.write(temp.read())
-        os.remove("temp.py")
+        os.remove(tempFile)
