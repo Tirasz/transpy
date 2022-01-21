@@ -53,7 +53,10 @@ def main():
         print(f"{files_to_transform[i]}")
 
 
-
+    for i in range(len(files_to_transform)):
+        print(f"Transforming: {files_to_transform[i]}")
+        tr = Transformer()
+        tr.inline_transform(files_to_transform[i])
 
 if __name__ == "__main__":
     main()
