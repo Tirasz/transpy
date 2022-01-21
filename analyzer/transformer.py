@@ -1,8 +1,21 @@
 import ast
 from analyzer import Analyzer
-from analyzer.utils import count_lines
 import os
 from pathlib import Path
+
+
+def count_actual_lines(lines, pos):
+    # At pos is the beginning of the If-node in the source code's string of lines
+    base_indent = indentation(lines[pos])
+    res = 1
+    pos += 1
+    while pos < len(lines):
+        if indentation(lines[pos]) > base_indent:
+            res += 1
+            pos += 1
+        else:
+            break
+    return res
 
 def indentation(s, tabsize=4):
     sx = s.expandtabs(tabsize)
@@ -12,13 +25,13 @@ class Transformer(ast.NodeTransformer):
 
     def __init__(self):
         self.analyzer = Analyzer()
-        self.lines = {} # Mapping the linenos of the original If-nodes to their length
+        #self.lines = {} # Mapping the linenos of the original If-nodes to their length
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
     def visit_If(self, node):
         #print(f"TRANSFORMER: NODE({node.test.lineno})")
         self.analyzer.visit(node)
         if node in self.analyzer.subjects.keys():
-            self.lines[node.test.lineno-1] = count_lines(node) +1
+           #self.lines[node.test.lineno-1] = count_lines(node) 
             subjectNode = self.analyzer.subjects[node]
             _cases = []
             for branch in self.analyzer.branches[node]:
@@ -59,18 +72,20 @@ class Transformer(ast.NodeTransformer):
             self.visit(tree)
             i = 0
             while i < len(lines):
+                #print(f"I(begin): {i} - {lines[i]}")
                 if i in self.results.keys():
                     indent = indentation(lines[i])
-                    #print(f"INSIDE IF AT {lines[i]} -- JUMPING TO: {lines[i+self.lines[i]]}")
+                    if_length = count_actual_lines(lines, i)
+                    #print(f"INSIDE IF -- LENGTH: {if_length}")
                     res = ast.unparse(self.results[i]).splitlines()
                     for newLine in res:
                         out.write(indent * " " + newLine + "\n")
                     #out.write("\n")
-                    i += self.lines[i] 
+                    i += if_length-1
                 else:
                     out.write(lines[i])
                 i += 1
-                    
+
     def inline_transform(self, file):
         tempFile = (file.parent / f"temp-{file.parts[-1]}")
         self.transform(file, tempFile)
