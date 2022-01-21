@@ -30,20 +30,20 @@ class Analyzer(ast.NodeVisitor):
         
         # Looping through the If-nodes branches
         for branch in self.branches[node]:
-                #print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
+            #print(f"ANALYZER: BRANCH({branch.body[0].lineno-1})")
                 
-                # Skipping trivial 'else:' branches.
-                if branch.test is None:
-                    #print(f"ANALYZER: TEST IS NONE. SKIPPING")
-                    continue
+            # Skipping trivial 'else:' branches.
+            if branch.test is None:
+                #print(f"ANALYZER: TEST IS NONE. SKIPPING")
+                continue
                 
-                # Determine the main pattern of the branch
-                branch_pattern = self.recognise_Branch(branch)
-                if branch_pattern is None: # If no pattern recognises the branch, then delete the whole if node from the dict and return.
-                    del self.branches[node]
-                    return
+            # Determine the main pattern of the branch
+            branch_pattern = self.recognise_Branch(branch)
+            if branch_pattern is None: # If no pattern recognises the branch, then delete the whole if node from the dict and return.
+                del self.branches[node]
+                return
                 
-                self.patterns[branch] = branch_pattern
+            self.patterns[branch] = branch_pattern
 
                 
 
@@ -65,31 +65,38 @@ class Analyzer(ast.NodeVisitor):
         self.subjects[node] = potential_subjects.pop()
         #print(f"ANALYZER: IF-NODE AT ({node.test.lineno}) HAS POTENTIAL SUBJECT: ({ast.unparse(self.subjects[node])})")
 
+        has_subBranches = False
         for branch in self.branches[node]:
-                # Checking nested If-nodes
-                subBranches = flatten(branch)
-                if subBranches is not None: # Have to determine which version to transform: flattened, or base
-                        # TODO: config 
-                        # Strict: Only choose flat version if no branch is "ugly"
-                        # Normal: Require at least one branch that isnt "ugly"
-                        # Loose: Always choose flat
-                        isUgly = False
-                        for subBranch in subBranches:
-                            pattern = self.recognise_Branch(subBranch) # Guaranteed to be GuardPattern
-                            self.patterns[subBranch] = pattern
-                            # Flattened branches tests always look like: BoolOp(And(), [mainTest, (nestedTest)*])
-                            # Have to check if the patterns guard == nestedTest (if nestedTest is not None)
-                            # Guard looks like: BoolOp(And(), [values])
-                            guard = pattern.guard(self.subjects[node])
-                            if guard is not None:
-                                guardList = guard.values
-                                temp = subBranch.test.values.copy()
-                                temp.remove(subBranch.mainTest)
-                                if temp == guardList: # Found ugly branch
-                                    isUgly = True
-                                    break
-                        if not isUgly:
-                            branch.flat = subBranches
+            # Checking nested If-nodes
+            subBranches = flatten(branch)
+            if subBranches is not None: # Have to determine which version to transform: flattened, or base
+                # TODO: config 
+                # Strict: Only choose flat version if no branch is "ugly"
+                # Normal: Require at least one branch that isnt "ugly"
+                # Loose: Always choose flat
+                isUgly = False
+                for subBranch in subBranches:
+                    pattern = self.recognise_Branch(subBranch) # Guaranteed to be GuardPattern
+                    self.patterns[subBranch] = pattern
+                    # Flattened branches tests always look like: BoolOp(And(), [mainTest, (nestedTest)*])
+                    # Have to check if the patterns guard == nestedTest (if nestedTest is not None)
+                    # Guard looks like: BoolOp(And(), [values])
+                    guard = pattern.guard(self.subjects[node])
+                    if guard is not None:
+                        guardList = guard.values
+                        temp = subBranch.test.values.copy()
+                        temp.remove(subBranch.mainTest)
+                        if temp == guardList: # Found ugly branch
+                            isUgly = True
+                            break
+                if not isUgly:
+                    branch.flat = subBranches
+                    has_subBranches = True
+"""
+        if len(self.branches[node]) <= 2 and not has_subBranches:
+            del self.branches[node]
+            del self.subjects[node]
+"""
 
                             
 
