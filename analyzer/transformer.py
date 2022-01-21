@@ -23,15 +23,19 @@ class Transformer(ast.NodeTransformer):
             _cases = []
             for branch in self.analyzer.branches[node]:
                 if branch.flat:
+                    #print(f"TRANSFORMER: BRANCH IS FLATTENED")
                     for subBranch in branch.flat:
                         pattern = self.analyzer.patterns[subBranch]
                         transformed_branch = ast.match_case(pattern = pattern.transform(subjectNode), guard = pattern.guard(subjectNode), body = subBranch.body)
                         _cases.append(transformed_branch)
                 else:
+                    #print(f"TRANSFORMER: BRANCH IS NOT FLATTENED")
                     _pattern = ast.MatchAs() if branch.test is None else self.analyzer.patterns[branch].transform(subjectNode)
                     _guard = None if branch.test is None else self.analyzer.patterns[branch].guard(subjectNode)
-                    temp = ast.Module(body = branch.body)
+                    temp = ast.Module(body = branch.body, type_ignores=[])
                     self.generic_visit(temp)
+                    #print("TRANSFORMER TEMP:")
+                    #print(ast.unparse(temp))
                     transformed_branch = ast.match_case(pattern = _pattern, guard = _guard, body = temp.body)
                     _cases.append(transformed_branch)
             result = ast.Match(subject = subjectNode, cases = _cases) 
@@ -41,6 +45,7 @@ class Transformer(ast.NodeTransformer):
             temp = ast.Module(body = node.body)
             self.generic_visit(temp)
             node.body = temp.body
+            return node
 
     def transform(self, inFile, outFile):
         if inFile == outFile:
