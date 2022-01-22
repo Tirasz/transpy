@@ -2,20 +2,32 @@ import ast
 from analyzer import Analyzer
 import os
 from pathlib import Path
+from functools import lru_cache
 
+@lru_cache(maxsize=128)
+def is_inside_if(lines, pos, base_indent):
+    #Supposing that base_indent is the indentation of the If-node returns True if the lines[pos] is inside that If-node
+    indent = indentation(lines[pos])
+    if indent > base_indent:
+        # Line is indented inside base_indent
+        return True
+    elif indent == base_indent and (lines[pos].strip().startswith("else:") or lines[pos].strip().startswith("elif")):
+        # Line is at the same indentation, but its just another branch
+        return True
+    elif indent == 0 and not bool(lines[pos].strip()) and (pos+1 < len(lines)):
+        # Empty line, have to check recursively until we find something, or end of file
+        return is_inside_if(lines, pos+1, base_indent)
+    else:
+        return False
 
 def count_actual_lines(lines, pos):
     # At pos is the beginning of the If-node in the source code's string of lines
     base_indent = indentation(lines[pos])
     res = 1
     pos += 1
-    while pos < len(lines):
-        indent = indentation(lines[pos])
-        if indent > base_indent or (indent == base_indent and (lines[pos].strip().startswith("else:") or lines[pos].strip().startswith("elsif"))) or (indent == 0 and not bool(lines[pos].strip())):
-            res += 1
-            pos += 1
-        else:
-            break
+    while pos < len(lines) and is_inside_if(lines, pos, base_indent):
+        res += 1
+        pos += 1
     return res
 
 def indentation(s, tabsize=4):
@@ -69,7 +81,7 @@ class Transformer(ast.NodeTransformer):
         with open(inFile, "r") as src, open(outFile, "w") as out:
             tree = ast.parse(src.read())
             src.seek(0)
-            lines = src.readlines()
+            lines = tuple(src.readlines())
             self.visit(tree)
             i = 0
             while i < len(lines):
