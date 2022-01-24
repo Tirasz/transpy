@@ -24,7 +24,17 @@ class ClassPattern:
         return True
 
     def transform(self, subject):
+        if isinstance(self.className, ast.Tuple):
+            list_of_classes = self.className.elts
+            _patterns = []
+            for _cls in list_of_classes:
+                _patterns.append(ast.MatchClass(cls = _cls, patterns=[], kwd_attrs = self.kwd_attribtues, kwd_patterns = self.kwd_patterns))
+            return ast.MatchOr(patterns = _patterns)
+        
         return ast.MatchClass(cls = self.className, patterns=[], kwd_attrs = self.kwd_attribtues, kwd_patterns = self.kwd_patterns)
+            
+
+        
 
     def potential_subjects(self):
         return self._potential_subjects
