@@ -79,9 +79,17 @@ class Transformer(ast.NodeTransformer):
             return
         
         with open(inFile, "r") as src, open(outFile, "w") as out:
-            tree = ast.parse(src.read())
+            try:
+                tree = ast.parse(src.read())
+            except SyntaxError:
+                print(f"SyntaxError found in file:\n {inFile} \n Skipping file!")
+                src.seek(0)
+                out.write(src.read())
+                return
+
             src.seek(0)
             lines = tuple(src.readlines())
+            #print(f"Viositing:\n {inFile}")
             self.visit(tree)
             i = 0
             while i < len(lines):
