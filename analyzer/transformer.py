@@ -73,43 +73,32 @@ class Transformer(ast.NodeTransformer):
             node.body = temp.body
             return node
 
-    def transform(self, inFile, outFile):
-        if inFile == outFile:
-            self.inline_transform(inFile)
-            return
-        
-        with open(inFile, "r") as src, open(outFile, "w") as out:
+
+    def transform(self, file):
+        with open(file, "r") as src:
             try:
                 tree = ast.parse(src.read())
             except SyntaxError:
-                print(f"SyntaxError found in file:\n {inFile} \n Skipping file!")
-                src.seek(0)
-                out.write(src.read())
+                print(f"SyntaxError found in file:\n {file} \n Skipping file!")
                 return
 
+            self.visit(tree)
+            if len(self.results.keys()) == 0:
+                return
+            
             src.seek(0)
             lines = tuple(src.readlines())
-            #print(f"Viositing:\n {inFile}")
-            self.visit(tree)
+
+        with open(file, "w") as out:
             i = 0
             while i < len(lines):
-                #print(f"I(begin): {i} - {lines[i]}")
                 if i in self.results.keys():
                     indent = indentation(lines[i])
                     if_length = count_actual_lines(lines, i)
-                    #print(f"INSIDE IF -- LENGTH: {if_length}")
                     res = ast.unparse(self.results[i]).splitlines()
                     for newLine in res:
                         out.write(indent * " " + newLine + "\n")
-                    #out.write("\n")
                     i += if_length-1
                 else:
                     out.write(lines[i])
                 i += 1
-
-    def inline_transform(self, file):
-        tempFile = (file.parent / f"temp-{file.parts[-1]}")
-        self.transform(file, tempFile)
-        with open(tempFile) as temp, open(file, "w") as f:
-            f.write(temp.read())
-        os.remove(tempFile)
