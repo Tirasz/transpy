@@ -38,8 +38,8 @@ class Transformer(ast.NodeTransformer):
 
     def __init__(self):
         self.analyzer = Analyzer()
-        #self.lines = {} # Mapping the linenos of the original If-nodes to their length
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
+
     def visit_If(self, node):
         #print(f"TRANSFORMER: NODE({node.test.lineno})")
         self.analyzer.visit(node)
