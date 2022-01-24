@@ -8,11 +8,12 @@ from functools import lru_cache
 def is_inside_if(lines, pos, base_indent):
     #Supposing that base_indent is the indentation of the If-node returns True if the lines[pos] is inside that If-node
     indent = indentation(lines[pos])
+    #print(f"Indent at line: ({lines[pos].strip()}): {indent}")
     if indent > base_indent:
         # Line is indented inside base_indent
         return True
-    elif indent == base_indent and (lines[pos].strip().startswith("else:") or lines[pos].strip().startswith("elif")):
-        # Line is at the same indentation, but its just another branch
+    elif indent == base_indent and (lines[pos].strip().startswith("else:") or lines[pos].strip().startswith("elif") or lines[pos].strip().startswith(")")):
+        # Line is at the same indentation, but its just another branch or smth
         return True
     elif indent == 0 and not bool(lines[pos].strip()) and (pos+1 < len(lines)):
         # Empty line, have to check recursively until we find something, or end of file
@@ -20,15 +21,22 @@ def is_inside_if(lines, pos, base_indent):
     else:
         return False
 
-def count_actual_lines(lines, pos):
+def count_actual_lines( lines, pos):
     # At pos is the beginning of the If-node in the source code's string of lines
-    base_indent = indentation(lines[pos])
-    res = 1
+    offset = 0
+    if not lines[pos].startswith('if'):
+        while not lines[pos+offset].strip().startswith('if'):
+            offset -= 1
+        
+    base_indent = indentation(lines[pos+offset])
+    #print(f"Base-Indent at line: ({lines[pos+offset].strip()}): {base_indent}")
+    res = 1 - offset
     pos += 1
     while pos < len(lines) and is_inside_if(lines, pos, base_indent):
         res += 1
         pos += 1
-    return res
+    #print(f" ACTUAL LINES: {res}, OFFSET: {offset}")
+    return (res, offset)
 
 def indentation(s, tabsize=4):
     sx = s.expandtabs(tabsize)
@@ -93,12 +101,22 @@ class Transformer(ast.NodeTransformer):
             i = 0
             while i < len(lines):
                 if i in self.results.keys():
+                    #print(f"LINE {i} IS IN RESULTS")
+                    if_length, offset = count_actual_lines(lines, i)
+                    self.results[i] = (self.results[i], if_length)
+                    if offset != 0:
+                        #print(f" AT LINE ({i}) OFFSET IS: {offset}")
+                        self.results[i+offset] = self.results[i]
+                i += 1
+            
+            i = 0
+            while i < len(lines):
+                if i in self.results.keys():
                     indent = indentation(lines[i])
-                    if_length = count_actual_lines(lines, i)
-                    res = ast.unparse(self.results[i]).splitlines()
+                    res = ast.unparse(self.results[i][0]).splitlines()
                     for newLine in res:
                         out.write(indent * " " + newLine + "\n")
-                    i += if_length-1
+                    i += self.results[i][1] -1
                 else:
                     out.write(lines[i])
                 i += 1
