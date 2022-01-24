@@ -18,6 +18,9 @@ parser.add_argument('-i', '--inline', dest='mode', action='store_const',
 parser.add_argument('-o', '--overwrite', dest='ow', action='store_const', const="Y", default=None, help="automatically overwrite files, when not transforming inline")
 
 
+def transform_helper(file):
+    tr = Transformer()
+    tr.transform(file)
 
 def make_copy(schizo, newPath):
     prompt = "Overwriting" if newPath.exists() else "Creating"
@@ -67,7 +70,7 @@ def main():
 
     print(f"Transforming files: ")
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = list(tqdm(executor.map(Transformer().transform, files_to_transform), total=len(files_to_transform)))
+        results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
 
 
 if __name__ == "__main__":
