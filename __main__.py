@@ -5,6 +5,10 @@ import os, glob
 import argparse
 import shutil
 from pathlib import Path
+import concurrent.futures 
+import threading
+from tqdm import tqdm
+import time
 
 parser = argparse.ArgumentParser(description="Analyzes and transforms python projects.")
 parser.add_argument("path", metavar='PATH', type=str, nargs=1, help="path to the directory / python file")
@@ -15,14 +19,16 @@ parser.add_argument('-o', '--overwrite', dest='ow', action='store_const', const=
 
 
 
-def make_copy(path, newPath):
+def make_copy(schizo, newPath):
     prompt = "Overwriting" if newPath.exists() else "Creating"
     print(f"{prompt} '{newPath}'")
+    path = schizo[0]
     if path.is_dir():
         if newPath.exists():
             shutil.rmtree(newPath)
-        return shutil.copytree(path, newPath)
-    return shutil.copy(path,newPath)
+        schizo[0] = shutil.copytree(path, newPath)
+    else:
+        schizo[0] = shutil.copy(path,newPath)
 
 def main():
     args = parser.parse_args()
@@ -43,20 +49,26 @@ def main():
             if ow == "N":
                 print("Quitting")
                 return
-        path = make_copy(path, newPath)
+        
+        path = [path]
+        #make_copy(path, newPath)
+        thread = threading.Thread(target = make_copy, args = (path, newPath), name="Copying thread")
+        thread.start()
+        eli_count = 0
+        while thread.is_alive():
+            print('Copying files', '.'*(eli_count+1), ' '*(2-eli_count), end='\r')
+            eli_count = (eli_count + 1) % 3
+            time.sleep(0.1)
+        thread.join()
+        path = path[0]
+        print('Done                 ')
 
-    
     files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
- 
-    print("The following file(s) will be transformed:")
-    for i in range(len(files_to_transform)):
-        print(f"{files_to_transform[i]}")
 
+    print(f"Transforming files: ")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(tqdm(executor.map(Transformer().transform, files_to_transform), total=len(files_to_transform)))
 
-    for i in range(len(files_to_transform)):
-        print(f"Transforming: {files_to_transform[i]}")
-        tr = Transformer()
-        tr.inline_transform(files_to_transform[i])
 
 if __name__ == "__main__":
     main()
