@@ -9,13 +9,14 @@ def is_inside_if(lines, pos, base_indent):
     #Supposing that base_indent is the indentation of the If-node returns True if the lines[pos] is inside that If-node
     indent = indentation(lines[pos])
     #print(f"Indent at line: ({lines[pos].strip()}): {indent}")
+    stripped = lines[pos].strip()
     if indent > base_indent:
         # Line is indented inside base_indent
         return True
-    elif indent == base_indent and (lines[pos].strip().startswith("else:") or lines[pos].strip().startswith("elif") or lines[pos].strip().startswith(")")):
+    elif indent == base_indent and (stripped.startswith("else:") or stripped.startswith("elif") or stripped.startswith(")") or stripped.startswith("#")):
         # Line is at the same indentation, but its just another branch or smth
         return True
-    elif indent == 0 and not bool(lines[pos].strip()) and (pos+1 < len(lines)):
+    elif indent == 0 and not bool(stripped) and (pos+1 < len(lines)):
         # Empty line, have to check recursively until we find something, or end of file
         return is_inside_if(lines, pos+1, base_indent)
     else:
