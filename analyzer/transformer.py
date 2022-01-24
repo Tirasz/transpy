@@ -79,7 +79,7 @@ class Transformer(ast.NodeTransformer):
             try:
                 tree = ast.parse(src.read())
             except SyntaxError:
-                print(f"SyntaxError found in file:\n {file} \n Skipping file!")
+                #print(f"SyntaxError found in file:\n {file} \n Skipping file!")
                 return
 
             self.visit(tree)
