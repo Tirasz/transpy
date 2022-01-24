@@ -70,6 +70,7 @@ class Analyzer(ast.NodeVisitor):
             # Checking nested If-nodes
             subBranches = flatten(branch)
             if subBranches is not None: # Have to determine which version to transform: flattened, or base
+                #print(f"ANALYZER: BRANCH({branch.body[0].lineno-1}) CAN BE FLATTENED")
                 # TODO: config 
                 # Strict: Only choose flat version if no branch is "ugly"
                 # Normal: Require at least one branch that isnt "ugly"
@@ -80,7 +81,9 @@ class Analyzer(ast.NodeVisitor):
                     if pattern is None:
                         isUgly = True
                         break
+
                     self.patterns[subBranch] = pattern
+                    #print(f"SUBBRANCH TEST: {ast.unparse(subBranch.test)}")
                     # Flattened branches tests always look like: BoolOp(And(), [mainTest, (nestedTest)*])
                     # Have to check if the patterns guard == nestedTest (if nestedTest is not None)
                     # Guard looks like: BoolOp(And(), [values])
@@ -88,7 +91,14 @@ class Analyzer(ast.NodeVisitor):
                     if guard is not None:
                         guardList = guard.values
                         temp = subBranch.test.values.copy()
-                        temp.remove(subBranch.mainTest)
+                        match subBranch.mainTest:
+                            case ast.BoolOp(op = ast.And()):
+                                for term in subBranch.mainTest.values:
+                                    if term in temp:
+                                        temp.remove(term)
+                            case _:
+                                temp.remove(subBranch.mainTest)
+                        
                         if temp == guardList: # Found ugly branch
                             isUgly = True
                             break
