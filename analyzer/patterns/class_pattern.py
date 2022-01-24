@@ -47,9 +47,10 @@ class ClassPattern:
         # Since ClassPattern specifies the class and the subject, look for other patterns that recognise an attribute of the subject as their subject
         for subject_node in self._potential_subjects:
             break
-        if(self.node in parentPattern._guard):
-            parentPattern._guard.remove(self.node)
-        
+        #if(self.node in parentPattern._guard):
+            #parentPattern._guard.remove(self.node)
+        # Why is this? ^
+
         #print(f"PATTERN: LOOKING FOR ATTRIBUTES FOR: ({ast.unparse(subject_node)})")
         temp = parentPattern.terms.copy()
         for term in temp:

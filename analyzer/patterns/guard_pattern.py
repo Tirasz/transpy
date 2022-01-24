@@ -33,19 +33,22 @@ class GuardPattern():
 
         #Checking for complex patterns
         # TODO: maybe not like this
-        for pattern in self.terms:
+        for i in range(len(self.terms)):
+            pattern = self.terms[i]
             #print(f"PATTERN: IS {type(pattern).__name__} COMPLEX?")
             if pattern.IsComplex:
                 pattern.process(self)
                 #print(f"PATTERN: RETURNED FROM COMPLEX CALL.")
                 break
         
-        #print(f"\tREMAINING TERMS:\n\t{[str(term) for term in self.terms]}")
+        #print(f"\tREMAINING TERMS:\n\t{[ast.unparse(term.node) for term in self.terms]}")
         #print(f"\tREMAINING GUARD:\n\t{[ast.unparse(t) for t in self._guard]}")
+
         # Rare edge-case
         if not len(self.terms):
-            print(f"NO TERMS REMAIN AFTER COMPLEX CALL IN: {ast.unparse(node)}")
+            #print(f"NO TERMS REMAIN AFTER COMPLEX CALL IN: {ast.unparse(node)}")
             return False
+
         self._potential_subjects = self.terms[0].potential_subjects().copy()
         # Unioning every terms potential subjects.
         for term in self.terms:
