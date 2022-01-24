@@ -76,7 +76,10 @@ class Analyzer(ast.NodeVisitor):
                 # Loose: Always choose flat
                 isUgly = False
                 for subBranch in subBranches:
-                    pattern = self.recognise_Branch(subBranch) # Guaranteed to be GuardPattern
+                    pattern = self.recognise_Branch(subBranch) # NOT Guaranteed to be GuardPattern
+                    if pattern is None:
+                        isUgly = True
+                        break
                     self.patterns[subBranch] = pattern
                     # Flattened branches tests always look like: BoolOp(And(), [mainTest, (nestedTest)*])
                     # Have to check if the patterns guard == nestedTest (if nestedTest is not None)
