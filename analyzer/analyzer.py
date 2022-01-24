@@ -105,11 +105,11 @@ class Analyzer(ast.NodeVisitor):
                 if not isUgly:
                     branch.flat = subBranches
                     has_subBranches = True
-"""
-        if len(self.branches[node]) <= 2 and not has_subBranches:
+
+        if len(self.branches[node]) < 3 and not has_subBranches:
             del self.branches[node]
             del self.subjects[node]
-"""
+
 
                             
 
