@@ -104,17 +104,20 @@ elif obj.prop > 10 and (obj.prop == 5 or obj.prop == 10):
 
 
 # Literal
-match number:
-    case None:
-        some_function(number)
-    case 2 | 3 | 3:
-        some_function(number)
-    case 4 | 5 | 6 if anything(1) and anything('Something'):
-        some_function(number)
-    case 7 if anything(2) and anything():
-        some_function(number)
-    case 9 | 10 if asd == 8:
-        some_function(asd)
+if number == None:
+    some_function(number)
+elif number == 2 or number == 3 or number == 3:
+    some_function(number)
+elif (number == 4 or number == 5 or number == 6) and anything(1) and anything("Something"):
+    some_function(number)
+elif anything(2) and anything() and number == 7:
+    some_function(number)
+elif asd == 8 and (number == 9 or number == 10):
+    some_function(asd)
+    
+
+
+# Literal with multiple subjects
 if (number == 1 or number == 2) and (asd == 3 or asd == 4) and anything(): 
     some_function(number)
     some_function(asd)
@@ -134,10 +137,10 @@ elif number == 1 or number == 2:
     print("asd")
 
 
-match obj:
-    case SomeClass(x=3 | 5):
+if isinstance(obj, SomeClass):
+    if obj.x == 3 or obj.x == 5:
         pass
-    case SomeClass(x=10 | 100):
+    elif obj.x == 10 or obj.x == 100:
         pass
 
 
@@ -147,34 +150,34 @@ if isinstance(obj, SomeClass) and (obj.x == 3 or obj.x == 5):
 elif isinstance(obj, SomeClass) and (obj.x == 10 or obj.x == 100):
     pass
 
-match x:
-    case OtherClass(attribute=42, other_attribute='something'):
-        something(1)
-        pass
-        something(3)
-    case OtherClass(attribute=12 | 24, other_attribute='this' | 'that') if any_bool_expression():
-        something(1)
-        pass
-        something(3)
-    case OtherClass():
-        something(1)
-        something(2)
-        something(3)
+if isinstance(x, OtherClass) and (x.attribute == 42 and x.other_attribute == "something"):
+    something(1)
+    pass
+    something(3)
+elif isinstance(x, OtherClass) and ( (x.attribute == 12 or x.attribute == 24) and (x.other_attribute == "this" or x.other_attribute == "that") and (any_bool_expression()) ):
+    something(1)
+    pass
+    something(3)
+elif isinstance(x, OtherClass):
+    something(1)
+    something(2)
+    something(3)
 
 
 
-match obj:
-    case Cat(color='black' | 'gray'):
+if isinstance(obj, Cat):
+    if obj.color == 'black' or obj.color == 'gray':
         turn_around()
-    case Cat(color='orange', weight='a lot'):
+    elif obj.color == 'orange' and obj.weight == 'a lot':
         give_lasagne()
-    case Cat():
+    else:
         ignore_cat()
-    case Dog(color='black' | 'gray'):
+elif isinstance(obj, Dog):
+    if obj.color == 'black' or obj.color == 'gray':
         give_pets()
-    case Dog(color='orange', weight='a lot'):
+    elif obj.color == 'orange' and obj.weight == 'a lot':
         give_treats()
-    case Dog():
+    else:
         ignore_cat()
 
 if a == 2 or a == 6:
@@ -192,18 +195,19 @@ if any_bool_expression():
     something_else()
 
 """ Nested If-s with no Pre-and-Post nest"""
-match obj:
-    case Cat(color='black' | 'gray'):
+if isinstance(obj, Cat):
+    if obj.color == 'black' or obj.color == 'gray':
         turn_around()
-    case Cat(color='orange', weight='a lot'):
+    elif obj.color == 'orange' and obj.weight == 'a lot':
         give_lasagne()
-    case Cat():
+    else:
         ignore_cat()
-    case Dog(color='black' | 'gray'):
+elif isinstance(obj, Dog):
+    if obj.color == 'black' or obj.color == 'gray':
         give_pets()
-    case Dog(color='orange', weight='a lot'):
+    elif obj.color == 'orange' and obj.weight == 'a lot':
         give_treats()
-    case Dog():
+    else:
         ignore_cat()
 
 something()
@@ -212,21 +216,19 @@ something_else()
 """Nested If-s with Pre and Post nest"""
 if isinstance(obj2, Cat):
     something(1)
-    match obj2.color:
-        case 'black' | 'gray':
-            turn_around()
-        case 'orange' if obj2.weight == 'a lot':
-            give_lasagne()
-        case _:
-            ignore_cat()
+    if obj2.color == 'black' or obj2.color == 'gray':
+        turn_around()
+    elif obj2.color == 'orange' and obj2.weight == 'a lot':
+        give_lasagne()
+    else:
+        ignore_cat()
 elif isinstance(obj2, Dog):
-    match obj2.color:
-        case 'black' | 'gray':
-            give_pets()
-        case 'orange' if obj2.weight == 'a lot':
-            give_treats()
-        case _:
-            ignore_cat()
+    if obj2.color == 'black' or obj2.color == 'gray':
+        give_pets()
+    elif obj2.color == 'orange' and obj2.weight == 'a lot':
+        give_treats()
+    else:
+        ignore_cat()
     something(2)
     something(3)
     something(4)
@@ -236,95 +238,91 @@ something_else()
 
 """"Ugly" nested If-s"""
 if isinstance(obj3, Cat):
-    match asd.color:
-        case 'black' | 'gray':
-            turn_around()
-        case 'orange' if asd.weight == 'a lot':
-            give_lasagne()
-        case _:
-            ignore_cat()
+    if asd.color == 'black' or asd.color == 'gray':
+        turn_around()
+    elif asd.color == 'orange' and asd.weight == 'a lot':
+        give_lasagne()
+    else:
+        ignore_cat()
 elif isinstance(obj3, Dog):
-    match asd.color:
-        case 'black' | 'gray':
-            give_pets()
-        case 'orange' if asd.weight == 'a lot':
-            give_treats()
-        case _:
-            ignore_cat()
+    if asd.color == 'black' or asd.color == 'gray':
+        give_pets()
+    elif asd.color == 'orange' and asd.weight == 'a lot':
+        give_treats()
+    else:
+        ignore_cat()
         
 something()
 something_else()
 
 
-match obj4:
-    case Cat(color='black' | 'gray'):
+if isinstance(obj4, Cat):
+    if obj4.color == 'black' or obj4.color == 'gray':
         turn_around()
-    case Cat(color='orange', weight='a lot'):
+    elif obj4.color == 'orange' and obj4.weight == 'a lot':
         give_lasagne()
-    case Cat():
+    else:
         ignore_cat()
-    case 'Dog' | 'Cat':
+else:
+    if obj4 == "Dog" or obj4 == "Cat":
         give_lasagne()
-    case 'Human':
+    elif obj4 == 'Human':
         turn_around()
-    case _:
+    else:
         pass
 
 
-match obj4:
-    case Cat():
-        one_line()
-        match obj4.color:
-            case 'black' | 'gray':
-                turn_around()
-            case 'orange' if obj4.weight == 'a lot':
-                give_lasagne()
-            case _:
-                ignore_cat()
-    case 'Dog' | 'Cat':
-        give_lasagne()
-    case 'Human':
+if isinstance(obj4, Cat):
+    one_line()
+    if obj4.color == 'black' or obj4.color == 'gray':
         turn_around()
-    case _:
+    elif obj4.color == 'orange' and obj4.weight == 'a lot':
+        give_lasagne()
+    else:
+        ignore_cat()
+else:
+    if obj4 == "Dog" or obj4 == "Cat":
+        give_lasagne()
+    elif obj4 == 'Human':
+        turn_around()
+    else:
         pass
 
-match obj4:
-    case Cat():
-        two_lines()
-        match obj4.color:
-            case 'black' | 'gray':
-                turn_around()
-            case 'orange' if obj4.weight == 'a lot':
-                give_lasagne()
-            case _:
-                ignore_cat()
-        two_lines()
-    case 'Dog' | 'Cat':
-        give_lasagne()
-    case 'Human':
+if isinstance(obj4, Cat):
+    two_lines()
+    if obj4.color == 'black' or obj4.color == 'gray':
         turn_around()
-    case _:
+    elif obj4.color == 'orange' and obj4.weight == 'a lot':
+        give_lasagne()
+    else:
+        ignore_cat()
+    two_lines()
+else:
+    if obj4 == "Dog" or obj4 == "Cat":
+        give_lasagne()
+    elif obj4 == 'Human':
+        turn_around()
+    else:
         pass
 
-match obj4:
-    case Cat():
-        lot_of_lines()
-        lot_of_lines()
-        lot_of_lines()
-        match obj4.color:
-            case 'black' | 'gray':
-                turn_around()
-            case 'orange' if obj4.weight == 'a lot':
-                give_lasagne()
-            case _:
-                ignore_cat()
-        lot_of_lines()
-        lot_of_lines()
-        lot_of_lines()
-    case 'Dog' | 'Cat':
-        give_lasagne()
-    case 'Human':
+if isinstance(obj4, Cat):
+    lot_of_lines()
+    lot_of_lines()
+    lot_of_lines()
+    if obj4.color == 'black' or obj4.color == 'gray':
         turn_around()
-    case _:
+    elif obj4.color == 'orange' and obj4.weight == 'a lot':
+        give_lasagne()
+    else:
+        ignore_cat()
+    lot_of_lines()
+    lot_of_lines()
+    lot_of_lines()
+else:
+    if obj4 == "Dog" or obj4 == "Cat":
+        give_lasagne()
+    elif obj4 == 'Human':
+        turn_around()
+    else:
         pass
 
