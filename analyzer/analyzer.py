@@ -1,6 +1,6 @@
 import ast
 from analyzer.utils import get_branches, load_patterns, flatten
-
+from analyzer import config
 
 class Analyzer(ast.NodeVisitor):
     Patterns = None
@@ -71,15 +71,12 @@ class Analyzer(ast.NodeVisitor):
             subBranches = flatten(branch)
             if subBranches is not None: # Have to determine which version to transform: flattened, or base
                 #print(f"ANALYZER: BRANCH({branch.body[0].lineno-1}) CAN BE FLATTENED")
-                # TODO: config 
-                # Strict: Only choose flat version if no branch is "ugly"
-                # Normal: Require at least one branch that isnt "ugly"
-                # Loose: Always choose flat
                 isUgly = False
+                can_be_flattened = True
                 for subBranch in subBranches:
                     pattern = self.recognise_Branch(subBranch) # NOT Guaranteed to be GuardPattern
                     if pattern is None:
-                        isUgly = True
+                        can_be_flattened = False
                         break
 
                     self.patterns[subBranch] = pattern
@@ -101,8 +98,8 @@ class Analyzer(ast.NodeVisitor):
                         
                         if temp == guardList: # Found ugly branch
                             isUgly = True
-                            break
-                if not isUgly:
+
+                if (not isUgly or config["FLATTENING"].getboolean("AllowUglyFlattening")) and can_be_flattened:
                     branch.flat = subBranches
                     has_subBranches += len(subBranches)
 
