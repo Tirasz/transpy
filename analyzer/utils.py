@@ -113,7 +113,7 @@ def flatten(branch):
     """Tries to flatten the branch. Returns a list of the flattened sub-branches. Return None if flattening is not possible. """
     # Cannot 'flatten' else: branches
     # Also, reject branches that have more (or less) than one nested If-node 
-    if branch.test is None or len(branch.nested_Ifs.keys()) != 1:
+    if branch.test is None or len(branch.nested_Ifs.keys()) != 1 or not(config["FLATTENING"].getboolean("AllowFlattening")):
         return None
 
 
