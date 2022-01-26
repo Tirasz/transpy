@@ -2,7 +2,9 @@ import ast
 import importlib
 import pkgutil
 import inspect
+from math import inf as Infinity
 import analyzer.patterns as patterns
+from analyzer import config
 
 def load_patterns():
     """Returns a list of valid pattern classes"""
@@ -114,16 +116,21 @@ def flatten(branch):
     if branch.test is None or len(branch.nested_Ifs.keys()) != 1:
         return None
 
-    # TODO: config for rejecting
-    # Strict: No multiple nested If-nodes, no Pre and Post nest blocks
-    # Normal: No multiple nested If-nodes, Pre and Post nest blocks upper limit on number of lines
-    # Loose: No multiple nested If-nodes, no limit on Pre and Post nest blocks 
+
+    if config["FLATTENING"].getboolean("CodeRepetitionAllowed"):
+        max_lenght = config["FLATTENING"].getint("MaxRepeatedLines")
+        if max_lenght == 0:
+            max_lenght = Infinity
+    else:
+        max_lenght = 0
 
     nestedIf = list(branch.nested_Ifs.keys())[0] 
     preNest = branch._get_preNest(nestedIf)
     postNest = branch._get_postNest(nestedIf)
-    if len(preNest) > 0 or len(postNest) > 0:
+
+    if len(preNest) + len(postNest) > max_lenght:
         return None
+
     mainTest = branch.test
     nestedBranches = branch.nested_Ifs[nestedIf]
     flattened = []
