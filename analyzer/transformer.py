@@ -1,7 +1,5 @@
 import ast
 from analyzer import Analyzer
-import os
-from pathlib import Path
 from functools import lru_cache
 
 @lru_cache(maxsize=128)
@@ -50,6 +48,7 @@ class Transformer(ast.NodeTransformer):
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
 
     def visit_If(self, node):
+        # TODO: config, should transformer recursively visit the bodies of If-nodes?
         #print(f"TRANSFORMER: NODE({node.test.lineno})")
         self.analyzer.visit(node)
         if node in self.analyzer.subjects.keys():

@@ -65,7 +65,7 @@ class Analyzer(ast.NodeVisitor):
         self.subjects[node] = potential_subjects.pop()
         #print(f"ANALYZER: IF-NODE AT ({node.test.lineno}) HAS POTENTIAL SUBJECT: ({ast.unparse(self.subjects[node])})")
 
-        has_subBranches = False
+        has_subBranches = 0
         for branch in self.branches[node]:
             # Checking nested If-nodes
             subBranches = flatten(branch)
@@ -104,7 +104,9 @@ class Analyzer(ast.NodeVisitor):
                             break
                 if not isUgly:
                     branch.flat = subBranches
-                    has_subBranches = True
+                    has_subBranches += len(subBranches)
+
+        # TODO config: minimum number of branches for an If-node to be transformed
 
         if len(self.branches[node]) < 3 and not has_subBranches:
             del self.branches[node]

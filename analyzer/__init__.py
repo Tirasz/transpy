@@ -9,6 +9,13 @@ def custom_eq(self, other):
 ast.AST.__hash__ = custom_hash
 ast.AST.__eq__ = custom_eq
 
+from pathlib import Path
+from configparser import ConfigParser
+
+conf_file = Path(__file__).parent.parent / 'config.ini'
+config = ConfigParser()
+config.read(conf_file)
+
 from .analyzer import Analyzer
 from .transformer import Transformer
 
