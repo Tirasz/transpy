@@ -1,5 +1,6 @@
 import ast
-from analyzer import Analyzer
+from analyzer import Analyzer, config
+from analyzer.utils import get_branches
 from functools import lru_cache
 
 @lru_cache(maxsize=128)
@@ -8,17 +9,20 @@ def is_inside_if(lines, pos, base_indent):
     indent = indentation(lines[pos])
     #print(f"Indent at line: ({lines[pos].strip()}): {indent}")
     stripped = lines[pos].strip()
+
+    if (stripped.startswith("#") or not bool(stripped)): # Empty / comment lines, have to check ahead if possible. 
+        if pos+1 < len(lines):
+            return is_inside_if(lines, pos+1, base_indent)
+        return False
+
     if indent > base_indent:
         # Line is indented inside base_indent
         return True
-    elif indent == base_indent and (stripped.startswith("else:") or stripped.startswith("elif") or stripped.startswith(")") or stripped.startswith("#")):
-        # Line is at the same indentation, but its just another branch or smth
-        return True
-    elif indent == 0 and not bool(stripped) and (pos+1 < len(lines)):
-        # Empty line, have to check recursively until we find something, or end of file
-        return is_inside_if(lines, pos+1, base_indent)
-    else:
-        return False
+    elif indent == base_indent: # Line is at the same indentation
+        if (stripped.startswith("else:") or stripped.startswith("elif") or stripped.startswith(")")): 
+            return True # its just another branch or multiline test
+
+    return False
 
 def count_actual_lines( lines, pos):
     # At pos is the beginning of the If-node in the source code's string of lines
@@ -46,11 +50,12 @@ class Transformer(ast.NodeTransformer):
     def __init__(self):
         self.analyzer = Analyzer()
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
-
+        self.visit_recursively = config["MAIN"].getboolean("VisitBodiesRecursively")
     def visit_If(self, node):
         # TODO: config, should transformer recursively visit the bodies of If-nodes?
         #print(f"TRANSFORMER: NODE({node.test.lineno})")
         self.analyzer.visit(node)
+        
         if node in self.analyzer.subjects.keys():
            #self.lines[node.test.lineno-1] = count_lines(node) 
             subjectNode = self.analyzer.subjects[node]
@@ -67,7 +72,8 @@ class Transformer(ast.NodeTransformer):
                     _pattern = ast.MatchAs() if branch.test is None else self.analyzer.patterns[branch].transform(subjectNode)
                     _guard = None if branch.test is None else self.analyzer.patterns[branch].guard(subjectNode)
                     temp = ast.Module(body = branch.body, type_ignores=[])
-                    self.generic_visit(temp)
+                    if self.visit_recursively:
+                        self.generic_visit(temp)
                     #print("TRANSFORMER TEMP:")
                     #print(ast.unparse(temp))
                     transformed_branch = ast.match_case(pattern = _pattern, guard = _guard, body = temp.body)
@@ -75,10 +81,24 @@ class Transformer(ast.NodeTransformer):
             result = ast.Match(subject = subjectNode, cases = _cases) 
             self.results[node.test.lineno-1] = result
             return result
+        elif self.visit_recursively:
+            curr_node = node
+            while isinstance(curr_node, ast.If):
+                temp = ast.Module(body = curr_node.body)
+                self.generic_visit(temp)
+                curr_node.body = temp.body
+                if len(curr_node.orelse):
+                    if isinstance(curr_node.orelse[0], ast.If):
+                        curr_node = curr_node.orelse[0]
+                        continue
+                    else:
+                        temp = ast.Module(body = curr_node.orelse)
+                        self.generic_visit(temp)
+                        curr_node.orelse = temp
+                break
+
+            return node
         else:
-            temp = ast.Module(body = node.body)
-            self.generic_visit(temp)
-            node.body = temp.body
             return node
 
 
