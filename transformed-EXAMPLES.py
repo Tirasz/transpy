@@ -190,9 +190,6 @@ if a == 2 or a == 6:
     elif isinstance(b, Dog) and b.color == 'orange' and b.weight == 'a lot':
         give_lasagne()
 
-if any_bool_expression():
-    something()
-    something_else()
 
 """ Nested If-s with no Pre-and-Post nest"""
 if isinstance(obj, Cat):
@@ -209,9 +206,25 @@ elif isinstance(obj, Dog):
         give_treats()
     else:
         ignore_cat()
+""" Nested If-s with no Pre-and-Post nest"""
 
-something()
-something_else()
+
+""" Nested If-s with no Pre-and-Post nest"""
+if isinstance(obj, Cat):
+    if obj.color == 'black' or obj.color == 'gray':
+        turn_around()
+    elif obj.color == 'orange' and obj.weight == 'a lot':
+        give_lasagne()
+    else:
+        ignore_cat()
+elif isinstance(obj, Dog):
+    if obj.color == 'black' or obj.color == 'gray':
+        give_pets()
+    elif obj.color == 'orange' and obj.weight == 'a lot':
+        give_treats()
+    else:
+        ignore_cat()
+    """ Nested If-s with no Pre-and-Post nest"""
 
 """Nested If-s with Pre and Post nest"""
 if isinstance(obj2, Cat):
