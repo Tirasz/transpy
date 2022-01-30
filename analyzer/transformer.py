@@ -94,7 +94,7 @@ class Transformer(ast.NodeTransformer):
                     else:
                         temp = ast.Module(body = curr_node.orelse)
                         self.generic_visit(temp)
-                        curr_node.orelse = temp
+                        curr_node.orelse = temp.body
                 break
 
             return node
