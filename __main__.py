@@ -73,10 +73,16 @@ def main():
     files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
     if not args.silent:
         logs_dir = (path / 'transpy-logs') if path.is_dir() else (path.parent / 'transpy-logs')
-        os.mkdir(logs_dir)
+        try:
+            os.mkdir(logs_dir)
+        except FileExistsError:
+            pass 
+
         log_config["LOGS"] = logs_dir
         if args.gen_di:
             log_config["DIFFS"] = (logs_dir / 'diffs.diff')
+            if log_config["DIFFS"].exists():
+                os.remove(log_config["DIFFS"])
 
     print(f"Transforming files: ")
     with concurrent.futures.ThreadPoolExecutor() as executor:
