@@ -1,6 +1,7 @@
 import ast
-from analyzer import Analyzer, config
+from analyzer import Analyzer, config, log_config
 from functools import lru_cache
+from datetime import datetime
 
 @lru_cache(maxsize=128)
 def is_inside_if(lines, pos, base_indent):
@@ -51,9 +52,17 @@ class Transformer(ast.NodeTransformer):
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
         self.visit_recursively = config["MAIN"].getboolean("VisitBodiesRecursively")
 
+
+    def log(self, text):
+        if "LOGS" not in log_config.keys():
+            return
+        logFile = log_config["LOGS"] / 'transformer.log'
+        with open(logFile, "a") as out:
+            out.write(f"[{datetime.now().strftime('%H:%M:%S')}] "+ text + "\n")
+
     def visit_If(self, node):
         # TODO: config, should transformer recursively visit the bodies of If-nodes?
-        #print(f"TRANSFORMER: NODE({node.test.lineno})")
+        #self.log(f"Transforming If-node at ({node.test.lineno})")
         self.analyzer.visit(node)
         
         if node in self.analyzer.subjects.keys():
@@ -104,12 +113,14 @@ class Transformer(ast.NodeTransformer):
         with open(file, "r") as src:
             try:
                 tree = ast.parse(src.read())
-            except SyntaxError:
+            except SyntaxError as error:
                 #print(f"SyntaxError found in file:\n {file} \n Skipping file!")
+                self.log(f"SyntaxError in '{file}': {error.msg} - line({error.lineno})")
                 return
 
             self.visit(tree)
             if len(self.results.keys()) == 0:
+                self.log(f"No transformable patterns in '{file}'")
                 return
             
             src.seek(0)
@@ -139,3 +150,16 @@ class Transformer(ast.NodeTransformer):
                 else:
                     out.write(src_lines[i])
                 i += 1
+
+        # Checking for SyntaxErrors in the transformed file
+        error = None
+        with open(file, "r") as f:
+            try:
+                ast.parse(f.read())
+            except SyntaxError as err:
+                error = err
+
+        if error: # Error was found, reverting to original, with message
+            with open(file, "w") as f:
+                self.log(f"SyntaxError in transformed '{file}': {error.msg} - line({error.lineno})")
+                f.writelines(src_lines)

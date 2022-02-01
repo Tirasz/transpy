@@ -16,6 +16,7 @@ conf_file = Path(__file__).parent / 'config.ini'
 config = ConfigParser()
 config.read(conf_file)
 
+log_config = {}
 from .analyzer import Analyzer
 from .transformer import Transformer
 

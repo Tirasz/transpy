@@ -1,6 +1,6 @@
 import ast
 from copy import deepcopy
-from analyzer import Transformer
+from analyzer import Transformer, log_config
 import os, glob
 import argparse
 import shutil
@@ -15,7 +15,7 @@ parser.add_argument("path", metavar='PATH', type=str, nargs=1, help="path to the
 parser.add_argument('-i', '--inline',          dest='mode',   action='store_const', const="inline", default="copy", help='transform inline (default makes a copy)')
 parser.add_argument('-o', '--overwrite',       dest='ow',     action='store_const', const="Y",      default=None,   help="automatically overwrite files, when not transforming inline")
 parser.add_argument('-s', '--silent',          dest='silent', action='store_const', const=True,     default=False,  help="prevents transpy from generating 'path/transpy-logs'")
-parser.add_argument('-gd', '--generate-diffs', dest='gen_di', action='store_const', const=True,     default=False,  help="generates diff files in 'path/transpy-logs/diffs'")
+parser.add_argument('-gd','--generate-diffs',  dest='gen_di', action='store_const', const=True,     default=False,  help="generates diff files in 'path/transpy-logs/diffs'")
 
 
 
@@ -74,8 +74,10 @@ def main():
     if not args.silent:
         logs_dir = (path / 'transpy-logs') if path.is_dir() else (path.parent / 'transpy-logs')
         os.mkdir(logs_dir)
+        log_config["LOGS"] = logs_dir
         if args.gen_di:
             os.mkdir(logs_dir / 'diffs')
+            log_config["DIFFS"] = (logs_dir / 'diffs')
 
     print(f"Transforming files: ")
     with concurrent.futures.ThreadPoolExecutor() as executor:
