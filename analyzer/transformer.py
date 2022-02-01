@@ -2,6 +2,7 @@ import ast
 from analyzer import Analyzer, config, log_config
 from functools import lru_cache
 from datetime import datetime
+import difflib
 
 @lru_cache(maxsize=128)
 def is_inside_if(lines, pos, base_indent):
@@ -120,7 +121,7 @@ class Transformer(ast.NodeTransformer):
 
             self.visit(tree)
             if len(self.results.keys()) == 0:
-                self.log(f"No transformable patterns in '{file}'")
+                #self.log(f"No transformable patterns in '{file}'")
                 return
             
             src.seek(0)
@@ -163,3 +164,14 @@ class Transformer(ast.NodeTransformer):
             with open(file, "w") as f:
                 self.log(f"SyntaxError in transformed '{file}': {error.msg} - line({error.lineno})")
                 f.writelines(src_lines)
+            return
+
+        if "DIFFS" in log_config.keys():
+            with open(file, "r") as f:
+                new_lines = f.readlines()
+
+            diff = difflib.context_diff(src_lines, new_lines, fromfile= str(file), tofile= str(file))
+            diff_file = log_config["DIFFS"] 
+            with open(diff_file, "a") as f:
+                f.writelines(diff)
+            
