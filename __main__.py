@@ -18,8 +18,6 @@ parser.add_argument('-i', '--inline', dest='mode', action='store_const',
 parser.add_argument('-o', '--overwrite', dest='ow', action='store_const', const="Y", default=None, help="automatically overwrite files, when not transforming inline")
 
 parser.add_argument('-s', '--silent', dest='silent', action='store_const', const=True, default=False, help="prevents transpy from generating 'path/transpy-logs'")
-parser.add_argument('-lt', '--log-transformer', dest='log_tr', action='store_const', const=True, default=False, help="enables transformer logs in 'path/transpy-logs/transformer'")
-parser.add_argument('-la', '--log-analyzer', dest='log_an', action='store_const', const=True, default=False, help="enables analyzer logs in 'path/transpy-logs/analyzer'")
 parser.add_argument('-gd', '--generate-diffs', dest='gen_di', action='store_const', const=True, default=False, help="generates diff files in 'path/transpy-logs/diffs'")
 
 
@@ -47,8 +45,8 @@ def main():
 
     if not path.exists():
         parser.error("Given path does not exist!")
-    if args.silent and (args.log_tr or args.log_an or args.gen_di):
-        parser.error("Cannot generate logs/diffs while in silent mode!")
+    if args.silent and args.gen_di:
+        parser.error("Cannot generate diffs while in silent mode!")
 
 
     if args.mode == "copy":
@@ -79,10 +77,6 @@ def main():
     if not args.silent:
         logs_dir = (path / 'transpy-logs') if path.is_dir() else (path.parent / 'transpy-logs')
         os.mkdir(logs_dir)
-        if args.log_tr:
-            os.mkdir(logs_dir / 'transformer')
-        if args.log_an:
-            os.mkdir(logs_dir / 'analyzer')
         if args.gen_di:
             os.mkdir(logs_dir / 'diffs')
 
