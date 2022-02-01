@@ -12,13 +12,10 @@ import time
 
 parser = argparse.ArgumentParser(description="Analyzes and transforms python projects.")
 parser.add_argument("path", metavar='PATH', type=str, nargs=1, help="path to the directory / python file")
-parser.add_argument('-i', '--inline', dest='mode', action='store_const',
-                    const="inline", default="copy",
-                    help='transform inline (default makes a copy)')
-parser.add_argument('-o', '--overwrite', dest='ow', action='store_const', const="Y", default=None, help="automatically overwrite files, when not transforming inline")
-
-parser.add_argument('-s', '--silent', dest='silent', action='store_const', const=True, default=False, help="prevents transpy from generating 'path/transpy-logs'")
-parser.add_argument('-gd', '--generate-diffs', dest='gen_di', action='store_const', const=True, default=False, help="generates diff files in 'path/transpy-logs/diffs'")
+parser.add_argument('-i', '--inline',          dest='mode',   action='store_const', const="inline", default="copy", help='transform inline (default makes a copy)')
+parser.add_argument('-o', '--overwrite',       dest='ow',     action='store_const', const="Y",      default=None,   help="automatically overwrite files, when not transforming inline")
+parser.add_argument('-s', '--silent',          dest='silent', action='store_const', const=True,     default=False,  help="prevents transpy from generating 'path/transpy-logs'")
+parser.add_argument('-gd', '--generate-diffs', dest='gen_di', action='store_const', const=True,     default=False,  help="generates diff files in 'path/transpy-logs/diffs'")
 
 
 
