@@ -1,6 +1,5 @@
 import ast
 from analyzer import Analyzer, config
-from analyzer.utils import get_branches
 from functools import lru_cache
 
 @lru_cache(maxsize=128)
@@ -51,6 +50,7 @@ class Transformer(ast.NodeTransformer):
         self.analyzer = Analyzer()
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
         self.visit_recursively = config["MAIN"].getboolean("VisitBodiesRecursively")
+
     def visit_If(self, node):
         # TODO: config, should transformer recursively visit the bodies of If-nodes?
         #print(f"TRANSFORMER: NODE({node.test.lineno})")
@@ -96,13 +96,11 @@ class Transformer(ast.NodeTransformer):
                         self.generic_visit(temp)
                         curr_node.orelse = temp.body
                 break
-
-            return node
-        else:
-            return node
+        return node
 
 
     def transform(self, file):
+        # Reading the source file
         with open(file, "r") as src:
             try:
                 tree = ast.parse(src.read())
@@ -115,14 +113,15 @@ class Transformer(ast.NodeTransformer):
                 return
             
             src.seek(0)
-            lines = tuple(src.readlines())
+            src_lines = tuple(src.readlines())
 
+        # Writing the (transformed) file
         with open(file, "w") as out:
             i = 0
-            while i < len(lines):
+            while i < len(src_lines):
                 if i in self.results.keys():
                     #print(f"LINE {i} IS IN RESULTS")
-                    if_length, offset = count_actual_lines(lines, i)
+                    if_length, offset = count_actual_lines(src_lines, i)
                     self.results[i] = (self.results[i], if_length)
                     if offset != 0:
                         #print(f" AT LINE ({i}) OFFSET IS: {offset}")
@@ -130,13 +129,13 @@ class Transformer(ast.NodeTransformer):
                 i += 1
             
             i = 0
-            while i < len(lines):
+            while i < len(src_lines):
                 if i in self.results.keys():
-                    indent = indentation(lines[i])
+                    indent = indentation(src_lines[i])
                     res = ast.unparse(self.results[i][0]).splitlines()
                     for newLine in res:
                         out.write(indent * " " + newLine + "\n")
                     i += self.results[i][1] -1
                 else:
-                    out.write(lines[i])
+                    out.write(src_lines[i])
                 i += 1
