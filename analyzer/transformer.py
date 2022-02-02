@@ -55,6 +55,10 @@ class Transformer(ast.NodeTransformer):
         self.logger = OutputHandler("transformer.log") if config["OUTPUT"].getboolean("AllowTransformerLogs") else None
         self.differ = OutputHandler("diffs.diff") if config["OUTPUT"].getboolean("GenerateDiffs") else None
 
+    def log(self, text):
+        if self.logger is not None:
+            self.logger.log(text)
+
     def visit_If(self, node):
         # TODO: config, should transformer recursively visit the bodies of If-nodes?
         #self.log(f"Transforming If-node at ({node.test.lineno})")
@@ -109,8 +113,7 @@ class Transformer(ast.NodeTransformer):
             try:
                 tree = ast.parse(src.read())
             except SyntaxError as error:
-                if self.logger is not None:
-                    self.logger.log(f"SyntaxError in '{file}': {error.msg} - line({error.lineno})")
+                self.log(f"SyntaxError in '{file}': {error.msg} - line({error.lineno})")
                 return
             self.analyzer.file = file
             self.visit(tree)
@@ -155,8 +158,7 @@ class Transformer(ast.NodeTransformer):
 
         if error: # Error was found, reverting to original, with message
             with open(file, "w") as f:
-                if self.logger is not None:
-                    self.logger.log(f"SyntaxError in transformed '{file}': {error.msg} - line({error.lineno}) ---> REVERTING")
+                self.log(f"SyntaxError in transformed '{file}': {error.msg} - line({error.lineno}) ---> REVERTING")
                 f.writelines(src_lines)
             return
 

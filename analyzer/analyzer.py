@@ -14,6 +14,10 @@ class Analyzer(ast.NodeVisitor):
                 return curr_pattern
         return None
 
+    def log(self, text):
+        if self.logger is not None:
+            self.logger.log(text)
+
     def __init__(self):
         self.branches = {} # Mapping If-nodes to a list of its branches. !!Only contains transformable if-nodes!!
         self.patterns = {} # Mapping branches to a pattern
@@ -37,8 +41,7 @@ class Analyzer(ast.NodeVisitor):
             # Determine the main pattern of the branch
             branch_pattern = self.recognise_Branch(branch)
             if branch_pattern is None: # If no pattern recognises the branch, then delete the whole if node from the dict and return.
-                if self.logger is not None:
-                    self.logger.log(f"If-node in '{self.file}' at line ({node.test.lineno}) is not transformable: Branch ({ast.unparse(branch.test)}) is not recognisable!")
+                self.log(f"If-node in '{self.file}' at line ({node.test.lineno}) is not transformable: Branch ({ast.unparse(branch.test)}) is not recognisable!")
                 del self.branches[node]
                 return
                 
@@ -56,16 +59,14 @@ class Analyzer(ast.NodeVisitor):
         
         
         if len(potential_subjects) == 0: # No common subject across branches -> reject
-            if self.logger is not None:
-                self.logger.log(f"If-node in '{self.file}' at line ({node.test.lineno}) is not transformable: No common subject is found!")
+            self.log(f"If-node in '{self.file}' at line ({node.test.lineno}) is not transformable: No common subject is found!")
             del self.branches[node]
             return
         elif len(potential_subjects) > 1: # More than one common subjects across branches -> choose randomly
-            if self.logger is not None:
-                subjects = set()
-                for subj in potential_subjects:
-                    subjects.add(ast.unparse(subj))
-                self.logger.log(f"If-node in '{self.file}' at line ({node.test.lineno}) has more than one common subjects: {subjects}")
+            subjects = set()
+            for subj in potential_subjects:
+                subjects.add(ast.unparse(subj))
+            self.log(f"If-node in '{self.file}' at line ({node.test.lineno}) has more than one common subjects: {subjects}")
 
         self.subjects[node] = potential_subjects.pop() 
 
@@ -80,8 +81,7 @@ class Analyzer(ast.NodeVisitor):
                     pattern = self.recognise_Branch(subBranch) # NOT Guaranteed to be GuardPattern
                     if pattern is None:
                         can_be_flattened = False
-                        if self.logger is not None:
-                            self.logger.log(f"Branch in '{self.file}' at line ({branch.body[0].lineno-1}) cannot be flattened! No pattern recognises: ({ast.unparse(subBranch.test)})")
+                        self.log(f"Branch in '{self.file}' at line ({branch.body[0].lineno-1}) cannot be flattened! No pattern recognises: ({ast.unparse(subBranch.test)})")
                         break
 
                     self.patterns[subBranch] = pattern
@@ -101,22 +101,21 @@ class Analyzer(ast.NodeVisitor):
                                 temp.remove(subBranch.mainTest)
                         
                         if temp == guardList: # Found ugly branch
-                            if self.logger is not None and not config["FLATTENING"].getboolean("AllowUglyFlattening"):
-                                self.logger.log(f"Branch in '{self.file}' at line ({branch.body[0].lineno-1}) cannot be flattened! Would result in ugly subBranch: ({ast.unparse(subBranch.test)})")
+                            if not config["FLATTENING"].getboolean("AllowUglyFlattening"):
+                                self.log(f"Branch in '{self.file}' at line ({branch.body[0].lineno-1}) cannot be flattened! Would result in ugly subBranch: ({ast.unparse(subBranch.test)})")
                             isUgly = True
             
                 if (not isUgly or config["FLATTENING"].getboolean("AllowUglyFlattening")) and can_be_flattened:
                     branch.flat = subBranches
                     number_of_subBranches += len(subBranches)
 
-            elif self.logger is not None:
-                self.logger.log(f"Branch in '{self.file}' at line ({branch.body[0].lineno-1}) cannot be flattened!")
+            else:
+                self.log(f"Branch in '{self.file}' at line ({branch.body[0].lineno-1}) cannot be flattened!")
 
         # TODO config: minimum number of branches for an If-node to be transformed
 
         if len(self.branches[node]) + number_of_subBranches < config["MAIN"].getint("MinimumBranches"):
-            if self.logger is not None:
-                self.logger.log(f"If-node in '{self.file}' at line ({node.test.lineno}) does not have enough branches: ({len(self.branches[node]) + number_of_subBranches})")
+            self.log(f"If-node in '{self.file}' at line ({node.test.lineno}) does not have enough branches: ({len(self.branches[node]) + number_of_subBranches})")
             del self.branches[node]
             del self.subjects[node]
 
