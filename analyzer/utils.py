@@ -147,41 +147,8 @@ def flatten(branch):
     
     return flattened
 
-# TODO probably useless
-class LineCounter(ast.NodeVisitor):
-    """ast visitor that counts how many nodes have a lineno attr in the tree. """
-    # Credit: https://codereview.stackexchange.com/questions/165996/counting-density-of-python-code
-    def __init__(self):
-        self.line_numbers = set()
 
-    def visit(self, node):
-        try:
-            self.line_numbers.add(node.lineno)
-        except AttributeError:
-            pass
-        self.generic_visit(node)
-
-# TODO probably useless
-def count_lines(nodes):
-    """Counts how many lines the given node takes up. Input can be a list of nodes, or a single node."""
-    if isinstance(nodes, list):
-        mockModule = ast.Module(body = nodes)
-    else:
-        mockModule = ast.Module(body = [nodes])
-    counter = LineCounter()
-    counter.visit(mockModule)
-    return len(counter.line_numbers)
-    
-# TODO probably useless
-class Parentage(ast.NodeTransformer):
-    """ast transformer, that adds a parent attribute to every node in the tree."""
-    # Credit: https://stackoverflow.com/questions/34570992/getting-parent-of-ast-node-in-python
-    parent = None
-
-    def visit(self, node):
-        node.parent = self.parent
-        self.parent = node
-        node = super().visit(node)
-        if isinstance(node, ast.AST):
-            self.parent = node.parent
-        return node
+class OutputHandler:
+    OUTPUT_FOLDER = None
+    def __init__(self, file):
+        pass
