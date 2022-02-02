@@ -112,7 +112,7 @@ class Transformer(ast.NodeTransformer):
                 if self.logger is not None:
                     self.logger.log(f"SyntaxError in '{file}': {error.msg} - line({error.lineno})")
                 return
-
+            self.analyzer.file = file
             self.visit(tree)
             if len(self.results.keys()) == 0:
                 return
