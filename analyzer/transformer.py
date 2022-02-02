@@ -1,5 +1,5 @@
 import ast
-from analyzer import Analyzer, config, log_config
+from analyzer import Analyzer, config
 from functools import lru_cache
 from datetime import datetime
 import difflib
@@ -53,13 +53,6 @@ class Transformer(ast.NodeTransformer):
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
         self.visit_recursively = config["MAIN"].getboolean("VisitBodiesRecursively")
 
-
-    def log(self, text):
-        if "LOGS" not in log_config.keys():
-            return
-        logFile = log_config["LOGS"] / 'transformer.log'
-        with open(logFile, "a") as out:
-            out.write(f"[{datetime.now().strftime('%H:%M:%S')}] "+ text + "\n")
 
     def visit_If(self, node):
         # TODO: config, should transformer recursively visit the bodies of If-nodes?
@@ -116,7 +109,6 @@ class Transformer(ast.NodeTransformer):
                 tree = ast.parse(src.read())
             except SyntaxError as error:
                 #print(f"SyntaxError found in file:\n {file} \n Skipping file!")
-                self.log(f"SyntaxError in '{file}': {error.msg} - line({error.lineno})")
                 return
 
             self.visit(tree)
@@ -151,7 +143,7 @@ class Transformer(ast.NodeTransformer):
                 else:
                     out.write(src_lines[i])
                 i += 1
-
+"""
         # Checking for SyntaxErrors in the transformed file
         error = None
         with open(file, "r") as f:
@@ -174,4 +166,5 @@ class Transformer(ast.NodeTransformer):
             diff_file = log_config["DIFFS"] 
             with open(diff_file, "a") as f:
                 f.writelines(diff)
+"""
             

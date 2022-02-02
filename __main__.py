@@ -1,6 +1,6 @@
 import ast
 from copy import deepcopy
-from analyzer import Transformer, log_config
+from analyzer import Transformer, init_output
 import os, glob
 import argparse
 import shutil
@@ -14,8 +14,6 @@ parser = argparse.ArgumentParser(description="Analyzes and transforms python pro
 parser.add_argument("path", metavar='PATH', type=str, nargs=1, help="path to the directory / python file")
 parser.add_argument('-i', '--inline',          dest='mode',    action='store_const', const="inline", default="copy", help='transform inline (default makes a copy)')
 parser.add_argument('-o', '--overwrite',       dest='ow',      action='store_const', const="Y",      default=None,   help="automatically overwrite files, when not transforming inline")
-parser.add_argument('-s', '--silent',          dest='silent',  action='store_const', const=True,     default=False,  help="prevents transpy from generating 'path/transpy-logs'")
-parser.add_argument('-gd','--generate-diffs',  dest='gen_di',  action='store_const', const=True,     default=False,  help="generates diff file in 'path/transpy-logs/'")
 
 
 
@@ -42,8 +40,6 @@ def main():
 
     if not path.exists():
         parser.error("Given path does not exist!")
-    if args.silent and args.gen_di:
-        parser.error("Cannot generate diffs while in silent mode!")
 
 
     if args.mode == "copy":
@@ -71,18 +67,7 @@ def main():
         print('Done                 ')
 
     files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
-    if not args.silent:
-        logs_dir = (path / 'transpy-logs') if path.is_dir() else (path.parent / 'transpy-logs')
-        try:
-            os.mkdir(logs_dir)
-        except FileExistsError:
-            pass 
-
-        log_config["LOGS"] = logs_dir
-        if args.gen_di:
-            log_config["DIFFS"] = (logs_dir / 'diffs.diff')
-            if log_config["DIFFS"].exists():
-                os.remove(log_config["DIFFS"])
+    init_output(path)
 
     print(f"Transforming files: ")
     with concurrent.futures.ThreadPoolExecutor() as executor:
