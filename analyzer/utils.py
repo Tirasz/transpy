@@ -3,8 +3,11 @@ import importlib
 import pkgutil
 import inspect
 from math import inf as Infinity
+from pathlib import Path
 import analyzer.patterns as patterns
 from analyzer import config
+from datetime import datetime
+import functools
 
 def load_patterns():
     """Returns a list of valid pattern classes"""
@@ -150,5 +153,31 @@ def flatten(branch):
 
 class OutputHandler:
     OUTPUT_FOLDER = None
-    def __init__(self, file):
-        pass
+    
+    def __new__(cls, filename):
+        if OutputHandler.OUTPUT_FOLDER is None:
+            return None
+        instance = super(OutputHandler, cls).__new__(cls)
+        instance.output_file = (OutputHandler.OUTPUT_FOLDER / filename)
+        return instance
+
+    def write(self, line):
+        if not isinstance(line, str):
+            raise ValueError(f"OutputHandler: {type(line).__name__} is not a string!")
+
+        with open(self.output_file, "a") as out:
+            out.write(line)
+
+    def writeline(self, line):
+        if not isinstance(line, str):
+            raise ValueError(f"OutputHandler: {type(line).__name__} is not a string!")
+
+        self.write(line + "\n")
+
+
+    def writelines(self, lines):
+        with open(self.output_file, "a") as out:
+            out.writelines(lines)
+
+    def log(self, line):
+        self.writeline(f"[{datetime.now().strftime('%H:%M:%S')}] "+ line + "\n")

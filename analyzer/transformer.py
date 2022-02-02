@@ -1,7 +1,7 @@
 import ast
 from analyzer import Analyzer, config
+from .utils import OutputHandler
 from functools import lru_cache
-from datetime import datetime
 import difflib
 
 @lru_cache(maxsize=128)
@@ -52,7 +52,8 @@ class Transformer(ast.NodeTransformer):
         self.analyzer = Analyzer()
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
         self.visit_recursively = config["MAIN"].getboolean("VisitBodiesRecursively")
-
+        self.logger = OutputHandler("transformer.log") if config["OUTPUT"].getboolean("AllowTransformerLogs") else None
+        self.differ = OutputHandler("diffs.diff") if config["OUTPUT"].getboolean("GenerateDiffs") else None
 
     def visit_If(self, node):
         # TODO: config, should transformer recursively visit the bodies of If-nodes?
@@ -108,12 +109,12 @@ class Transformer(ast.NodeTransformer):
             try:
                 tree = ast.parse(src.read())
             except SyntaxError as error:
-                #print(f"SyntaxError found in file:\n {file} \n Skipping file!")
+                if self.logger is not None:
+                    self.logger.log(f"SyntaxError in '{file}': {error.msg} - line({error.lineno})")
                 return
 
             self.visit(tree)
             if len(self.results.keys()) == 0:
-                #self.log(f"No transformable patterns in '{file}'")
                 return
             
             src.seek(0)
@@ -143,8 +144,8 @@ class Transformer(ast.NodeTransformer):
                 else:
                     out.write(src_lines[i])
                 i += 1
-"""
-        # Checking for SyntaxErrors in the transformed file
+
+        # Checking for SyntaxErrors in the transformed file   
         error = None
         with open(file, "r") as f:
             try:
@@ -154,17 +155,17 @@ class Transformer(ast.NodeTransformer):
 
         if error: # Error was found, reverting to original, with message
             with open(file, "w") as f:
-                self.log(f"SyntaxError in transformed '{file}': {error.msg} - line({error.lineno})")
+                if self.logger is not None:
+                    self.logger.log(f"SyntaxError in transformed '{file}': {error.msg} - line({error.lineno}) ---> REVERTING")
                 f.writelines(src_lines)
             return
 
-        if "DIFFS" in log_config.keys():
+        if self.differ is not None:
             with open(file, "r") as f:
                 new_lines = f.readlines()
 
             diff = difflib.context_diff(src_lines, new_lines, fromfile= str(file), tofile= str(file))
-            diff_file = log_config["DIFFS"] 
-            with open(diff_file, "a") as f:
-                f.writelines(diff)
-"""
+            self.differ.writelines(diff)
+
+
             
