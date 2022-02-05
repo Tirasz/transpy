@@ -53,13 +53,17 @@ def simplify(node):
 
 class Branch:
     def __init__(self, body, test = None):
+        self.body = []
         self.test = test
-        self.body = body
         self.flat = False
         self.nested_Ifs = {} # Mapping every nested If-node to its list of branches
-        for node in self.body:
-            if isinstance(node, ast.If):
-                self.nested_Ifs[node] = get_branches(node)
+        for node in body:
+            match node:
+                case ast.If:
+                    self.nested_Ifs[node] = get_branches(node)
+                case ast.Expr(value = ast.Constant(kind = None, value = str(_))):
+                    continue
+            self.body.append(node)
 
     def _get_preNest(self, nested_IfNode):
         """Returns a list of nodes from the branches body, that appear before the given nested If-node"""
@@ -70,11 +74,8 @@ class Branch:
         for i in range(len(self.body)):
             if self.body[i] == nested_IfNode:
                 break
-            match self.body[i]:
-                case ast.Expr(value = ast.Constant(kind = None, value = str(_))):
-                    continue
-                case _:
-                    preNest.append(self.body[i])
+            else:
+                preNest.append(self.body[i])
                 
         return preNest
 
@@ -90,11 +91,7 @@ class Branch:
                 flag = True
                 continue
             if flag:
-                match self.body[i]:
-                    case ast.Expr(value = ast.Constant(kind = None, value = str(_))):
-                        continue
-                    case _:
-                        postNest.append(self.body[i])
+                postNest.append(self.body[i])
         return postNest
 
 
