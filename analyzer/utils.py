@@ -70,8 +70,12 @@ class Branch:
         for i in range(len(self.body)):
             if self.body[i] == nested_IfNode:
                 break
-            else:
-                preNest.append(self.body[i])
+            match self.body[i]:
+                case ast.Expr(value = ast.Constant(kind = None, value = str(_))):
+                    continue
+                case _:
+                    preNest.append(self.body[i])
+                
         return preNest
 
     def _get_postNest(self, nested_IfNode):
@@ -86,7 +90,11 @@ class Branch:
                 flag = True
                 continue
             if flag:
-                postNest.append(self.body[i])
+                match self.body[i]:
+                    case ast.Expr(value = ast.Constant(kind = None, value = str(_))):
+                        continue
+                    case _:
+                        postNest.append(self.body[i])
         return postNest
 
 
