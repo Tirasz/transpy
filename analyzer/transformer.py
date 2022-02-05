@@ -151,9 +151,12 @@ class Transformer(ast.NodeTransformer):
                     indent = indentation(src_lines[i])
                     res = ast.unparse(self.results[i][0]).splitlines()
                     if self.preserve_comments:
-                        out.write(f"# PRESERVED COMMENTS: \n")
+                        flag = False
                         for key in comments.keys():
-                            if key in range(i, self.results[i][1] -1):
+                            if key in range(i, i+self.results[i][1] -1):
+                                if not flag:
+                                    out.write(indent * " " + "# PRESERVED COMMENTS: \n")
+                                flag = True
                                 out.write(indent * " " + comments[key] + "\n")
                     for newLine in res:
                         out.write(indent * " " + newLine + "\n")
