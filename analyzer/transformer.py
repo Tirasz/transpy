@@ -3,6 +3,7 @@ from analyzer import Analyzer, config
 from .utils import OutputHandler
 from functools import lru_cache
 import difflib
+from tokenize import generate_tokens
 
 @lru_cache(maxsize=128)
 def is_inside_if(lines, pos, base_indent):
@@ -52,6 +53,7 @@ class Transformer(ast.NodeTransformer):
         self.analyzer = Analyzer()
         self.results = {} # Mapping the linenos of the og If-nodes to their transformed counterpart
         self.visit_recursively = config["MAIN"].getboolean("VisitBodiesRecursively")
+        self.preserve_comments = config["MAIN"].getboolean("PreserveComments")
         self.logger = OutputHandler("transformer.log") if config["OUTPUT"].getboolean("AllowTransformerLogs") else None
         self.differ = OutputHandler("diffs.diff") if config["OUTPUT"].getboolean("GenerateDiffs") else None
 
@@ -60,7 +62,6 @@ class Transformer(ast.NodeTransformer):
             self.logger.log(text)
 
     def visit_If(self, node):
-        # TODO: config, should transformer recursively visit the bodies of If-nodes?
         #self.log(f"Transforming If-node at ({node.test.lineno})")
         self.analyzer.visit(node)
         
@@ -122,6 +123,14 @@ class Transformer(ast.NodeTransformer):
             
             src.seek(0)
             src_lines = tuple(src.readlines())
+            comments = None
+            if self.preserve_comments:
+                comments = {}
+                src.seek(0)
+                tokens = generate_tokens(src.readline)
+                for token in tokens:
+                    if token.type == 61:
+                        comments[token.start[0]] = token.string
 
         # Writing the (transformed) file
         with open(file, "w") as out:
@@ -141,6 +150,11 @@ class Transformer(ast.NodeTransformer):
                 if i in self.results.keys():
                     indent = indentation(src_lines[i])
                     res = ast.unparse(self.results[i][0]).splitlines()
+                    if self.preserve_comments:
+                        out.write(f"# PRESERVED COMMENTS: \n")
+                        for key in comments.keys():
+                            if key in range(i, self.results[i][1] -1):
+                                out.write(indent * " " + comments[key] + "\n")
                     for newLine in res:
                         out.write(indent * " " + newLine + "\n")
                     i += self.results[i][1] -1
