@@ -16,10 +16,6 @@ class SingletonPattern:
             case ast.Compare(left = subject_node, ops = [ast.Is()], comparators = [ast.Constant()] ):
                 self.const_node = node.comparators[0]
                 self._potential_subjects.add(subject_node)
-            case ast.Compare(left = subject_node, ops = [ast.IsNot()], comparators = [ast.Constant()] ):
-                self.const_node = node.comparators[0]
-                self._potential_subjects.add(subject_node)
-                self.inverted = True
             case _:
                 return False
         if self.inverted and self.const_node.value == None:
