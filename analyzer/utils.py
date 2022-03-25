@@ -59,7 +59,7 @@ class Branch:
         self.nested_Ifs = {} # Mapping every nested If-node to its list of branches
         for node in body:
             match node:
-                case ast.If:
+                case ast.If():
                     self.nested_Ifs[node] = get_branches(node)
                 case ast.Expr(value = ast.Constant(kind = None, value = str(_))):
                     continue
