@@ -157,7 +157,7 @@ class Transformer(ast.NodeTransformer):
                                 if not flag:
                                     out.write(indent * " " + "# PRESERVED COMMENTS: \n")
                                 flag = True
-                                out.write(indent * " " + comments[key] + "\n")
+                                out.write((indent+1) * " " + comments[key] + "\n")
                     for newLine in res:
                         out.write(indent * " " + newLine + "\n")
                     i += self.results[i][1] -1
