@@ -9,17 +9,58 @@ import concurrent.futures
 import threading
 from tqdm import tqdm
 import time
+from datetime import timedelta
+from memory_profiler import memory_usage
+import json
 
 parser = argparse.ArgumentParser(description="Analyzes and transforms python projects.")
 parser.add_argument("path", metavar='PATH', type=str, nargs=1, help="path to the directory / python file")
 parser.add_argument('-i', '--inline',          dest='mode',    action='store_const', const="inline", default="copy", help='transform inline (default makes a copy)')
 parser.add_argument('-o', '--overwrite',       dest='ow',      action='store_const', const="Y",      default=None,   help="automatically overwrite files, when not transforming inline")
+parser.add_argument('-t', '--test',            dest='test',   action='store_const', const=True,      default=False,   help="run in test mode, provides additional info on runtime and memory usage, etc.")
+parser.add_argument('-mt','--max-threads',dest='max_threads', const=None, default=None, type=int, help='maximum number of threads to use', nargs=1)
+TEST_DATA = {
+    "project_size_MiB" : 0,
+    "no_files" : 0,
+    "no_nodes_visited" : 0,
+    "no_nodes_transformed" : 0,
+    "runtime_s" : 0,
+    "max_memory_MiB" : 0
+}
 
+
+def get_size(start_path):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # skip if it is symbolic link
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+
+    return total_size
+
+
+def test_helper(path):
+    global TEST_DATA
+    files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
+    init_output(path)
+
+    TEST_DATA["no_files"] = len(files_to_transform)
+    print(f"Transforming files: ")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
+
+    for res in results:
+        TEST_DATA["no_nodes_visited"] += res[0]
+        TEST_DATA["no_nodes_transformed"] += res[1]
+    return 
 
 
 def transform_helper(file):
     tr = Transformer()
     tr.transform(file)
+    return (tr.visited_nodes, len(tr.results.keys()))
 
 def make_copy(schizo, newPath):
     prompt = "Overwriting" if newPath.exists() else "Creating"
@@ -35,12 +76,17 @@ def make_copy(schizo, newPath):
 def main():
     args = parser.parse_args()
     path = Path(args.path[0]).resolve()
-    files_to_transform = []
+    max_threads = args.max_threads[0] if args.max_threads is not None else None
     ow = args.ow
+    test_mode = args.test
+    files_to_transform = []
+    
 
     if not path.exists():
         parser.error("Given path does not exist!")
 
+    if max_threads is not None and max_threads <= 0:
+        parser.error(f"You want to use {max_threads} threads, huh?")
 
     if args.mode == "copy":
         newPath = (path.parent / f"transformed-{path.parts[-1]}")
@@ -66,13 +112,27 @@ def main():
         path = path[0]
         print('Done                 ')
 
-    files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
-    init_output(path)
 
-    print(f"Transforming files: ")
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
+    if test_mode:
+        global TEST_DATA
+        start_time = time.monotonic()
+        mem = max(memory_usage((test_helper, (path,), {})))
+        end_time = time.monotonic()
+        TEST_DATA["runtime_s"] = timedelta(seconds=end_time - start_time).total_seconds()
+        TEST_DATA["max_memory_MiB"] = mem 
+        TEST_DATA["project_size_MiB"] = get_size(path) / 1048576 # get size returns bytes, 1 MiB = 2^20 bytes which is 1048576
 
+
+        print(f"Writing test data in: {path / f'TEST_DATA.json'}")
+        with open(path / f"TEST_DATA.json", "w") as f:
+            json.dump(TEST_DATA, f, indent=4)
+    else:
+        files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
+        init_output(path)
+        print(f"Transforming files: ")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
+   
 
 if __name__ == "__main__":
     main()
