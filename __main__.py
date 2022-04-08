@@ -12,6 +12,7 @@ import time
 from datetime import timedelta
 from memory_profiler import memory_usage
 import json
+import subprocess
 
 parser = argparse.ArgumentParser(description="Analyzes and transforms python projects.")
 parser.add_argument("path", metavar='PATH', type=str, nargs=1, help="path to the directory / python file")
@@ -19,15 +20,28 @@ parser.add_argument('-i', '--inline',          dest='mode',    action='store_con
 parser.add_argument('-o', '--overwrite',       dest='ow',      action='store_const', const="Y",      default=None,   help="automatically overwrite files, when not transforming inline")
 parser.add_argument('-t', '--test',            dest='test',   action='store_const', const=True,      default=False,   help="run in test mode, provides additional info on runtime and memory usage, etc.")
 parser.add_argument('-mt','--max-threads',dest='max_threads', const=None, default=None, type=int, help='maximum number of threads to use', nargs=1)
+
 TEST_DATA = {
-    "project_size_MiB" : 0,
+    "project_size_MiB" : 0, 
     "no_files" : 0,
+    "cloc_py": {},
     "no_nodes_visited" : 0,
     "no_nodes_transformed" : 0,
     "runtime_s" : 0,
     "max_memory_MiB" : 0
 }
 
+def cloc(path):
+    CLOC = subprocess.run(['cloc', path], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    pythonLine = next(line for line in CLOC.splitlines() if line.strip().startswith("Python"))
+    data = [d for d in pythonLine.split(" ") if d]
+
+    return {
+        "files" : int(data[1]),
+        "blank" : int(data[2]),
+        "comment" : int(data[3]),
+        "code" : int(data[4])
+    }
 
 def get_size(start_path):
     total_size = 0
@@ -121,8 +135,8 @@ def main():
         TEST_DATA["runtime_s"] = timedelta(seconds=end_time - start_time).total_seconds()
         TEST_DATA["max_memory_MiB"] = mem 
         TEST_DATA["project_size_MiB"] = get_size(path) / 1048576 # get size returns bytes, 1 MiB = 2^20 bytes which is 1048576
-
-
+        TEST_DATA["cloc_py"] = cloc(path)
+        
         print(f"Writing test data in: {path / f'TEST_DATA.json'}")
         with open(path / f"TEST_DATA.json", "w") as f:
             json.dump(TEST_DATA, f, indent=4)
@@ -136,3 +150,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
