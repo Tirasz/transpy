@@ -56,6 +56,7 @@ class Transformer(ast.NodeTransformer):
         self.preserve_comments = config["MAIN"].getboolean("PreserveComments")
         self.logger = OutputHandler("transformer.log") if config["OUTPUT"].getboolean("AllowTransformerLogs") else None
         self.differ = OutputHandler("diffs.diff") if config["OUTPUT"].getboolean("GenerateDiffs") else None
+        self.visited_nodes = 0
 
     def log(self, text):
         if self.logger is not None:
@@ -63,6 +64,7 @@ class Transformer(ast.NodeTransformer):
 
     def visit_If(self, node):
         #self.log(f"Transforming If-node at ({node.test.lineno})")
+        self.visited_nodes += 1
         self.analyzer.visit(node)
         
         if node in self.analyzer.subjects.keys():
@@ -110,7 +112,7 @@ class Transformer(ast.NodeTransformer):
 
     def transform(self, file):
         # Reading the source file
-        with open(file, "r") as src:
+        with open(file, "r", encoding='utf-8-sig') as src:
             try:
                 tree = ast.parse(src.read())
             except SyntaxError as error:
@@ -120,7 +122,7 @@ class Transformer(ast.NodeTransformer):
             self.visit(tree)
             if len(self.results.keys()) == 0:
                 return
-            
+                
             src.seek(0)
             src_lines = tuple(src.readlines())
             comments = None
@@ -185,6 +187,4 @@ class Transformer(ast.NodeTransformer):
 
             diff = difflib.context_diff(src_lines, new_lines, fromfile= str(file), tofile= str(file))
             self.differ.writelines(diff)
-
-
             
