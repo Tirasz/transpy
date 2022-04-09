@@ -118,6 +118,10 @@ class Transformer(ast.NodeTransformer):
             except SyntaxError as error:
                 self.log(f"SyntaxError in '{file}': {error.msg} - line({error.lineno})")
                 return
+            except UnicodeDecodeError as error:
+                self.log(f"UnicodeDecodeError in {file}")
+                return
+                
             self.analyzer.file = file
             self.visit(tree)
             if len(self.results.keys()) == 0:
