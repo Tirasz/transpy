@@ -20,6 +20,7 @@ parser.add_argument('-i', '--inline',          dest='mode',    action='store_con
 parser.add_argument('-o', '--overwrite',       dest='ow',      action='store_const', const="Y",      default=None,   help="automatically overwrite files, when not transforming inline")
 parser.add_argument('-t', '--test',            dest='test',   action='store_const', const=True,      default=False,   help="run in test mode, provides additional info on runtime and memory usage, etc.")
 parser.add_argument('-mt','--max-threads',dest='max_threads', const=None, default=None, type=int, help='maximum number of threads to use', nargs=1)
+parser.add_argument('-p','--p-name',dest='proj_name', const=None, default=None, type=str, help='maximum number of threads to use', nargs=1)
 
 TEST_DATA = {
     "project_size_MiB" : 0, 
@@ -29,7 +30,8 @@ TEST_DATA = {
     "no_nodes_transformed" : 0,
     "runtime_s" : 0,
     "max_memory_MiB" : 0,
-    "max_workers": 0
+    "max_workers": 0,
+    "project": ''
 }
 
 def cloc(path):
@@ -126,7 +128,7 @@ def main(path, max_threads):
 
    
 
-if __name__ == "__main__":
+if __name__ == "__main__" or True:
     args = parser.parse_args()
     path = Path(args.path[0]).resolve()
     max_threads = int(args.max_threads[0]) if args.max_threads is not None else min(32, os.cpu_count() + 4)
@@ -135,7 +137,7 @@ if __name__ == "__main__":
     ow = args.ow
     test_mode = args.test
     files_to_transform = []
-    
+    p_name = args.proj_name
 
     if not path.exists():
         parser.error("Given path does not exist!")
@@ -173,8 +175,18 @@ if __name__ == "__main__":
     init_output(path)
     mem = max(memory_usage((main, (path, max_threads), {})))
     TEST_DATA["max_memory_MiB"] = mem
-    print(f"Writing test data in: {path / f'TEST_DATA.json'}")
-    with open(path / f"TEST_DATA.json", "w") as f:
+
+    import random
+    n = random.random()
+    testdatapath = Path(f"/home/tirasz/transpy-testing/TEST_DATA-{n}.json").resolve()
+    while testdatapath.exists():
+        n = random.random()
+        testdatapath = Path(f"/home/tirasz/transpy-testing/TEST_DATA-{n}.json").resolve()
+
+
+    TEST_DATA["project"] = p_name[0]
+    print(f"Writing test data in: {testdatapath}")
+    with open(testdatapath, "w") as f:
         json.dump(TEST_DATA, f, indent=4)
 
 
