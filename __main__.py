@@ -80,11 +80,14 @@ def test_helper(path, max_threads):
     
 
     TEST_DATA["no_files"] = len(files_to_transform)
-    TEST_DATA["max_workers"] = max_threads
+    TEST_DATA["max_workers"] = max_threads 
     print(f"Transforming files: ")
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
+    if max_threads != 16:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+            results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
+    else:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
 
     for res in results:
         TEST_DATA["no_nodes_visited"] += res[0]
@@ -142,8 +145,6 @@ if __name__ == "__main__" or True:
     if not path.exists():
         parser.error("Given path does not exist!")
 
-    if max_threads is not None and max_threads < 0:
-        parser.error(f"You want to use {max_threads} threads, huh?")
 
     if args.mode == "copy":
         if not test_mode:
