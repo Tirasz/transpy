@@ -27,7 +27,11 @@ def transform_helper(file):
     tr = Transformer()
     tr.transform(file)
 
-def init_output(default_path):
+# Needed for ProcessPoolExecutor init, since new processes dont get the static variable
+def init_output(path):
+    OutputHandler.OUTPUT_FOLDER = path
+
+def make_output_folder(default_path):
     if not config["OUTPUT"].getboolean("AllowOutput"):
         return
     
@@ -38,7 +42,6 @@ def init_output(default_path):
     
     output_dir = (Path(output_dir) / 'transpy-output').resolve()
 
-    print(f"Output directory is: '{output_dir}'")
     try:
         os.mkdir(output_dir)
         os.mkdir(output_dir / 'diffs')
@@ -46,4 +49,7 @@ def init_output(default_path):
         print(f"Output directory already exists! Deleting..")
         shutil.rmtree(output_dir)
         os.mkdir(output_dir)
+        os.mkdir(output_dir / 'diffs')
     OutputHandler.OUTPUT_FOLDER = output_dir
+    print(f"Output directory is: '{OutputHandler.OUTPUT_FOLDER}'")
+    

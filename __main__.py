@@ -1,6 +1,6 @@
 import ast
 from copy import deepcopy
-from analyzer import Transformer, init_output, transform_helper
+from analyzer import Transformer, make_output_folder, transform_helper, init_output
 import os, glob
 import argparse
 import shutil
@@ -9,6 +9,8 @@ import concurrent.futures
 import threading
 from tqdm import tqdm
 import time
+
+from analyzer.utils import OutputHandler
 
 parser = argparse.ArgumentParser(description="Analyzes and transforms python projects.")
 parser.add_argument("path", metavar='PATH', type=str, nargs=1, help="path to the directory / python file")
@@ -33,7 +35,7 @@ def onerror(func, path, exc_info):
         os.chmod(path, stat.S_IWUSR)
         func(path)
     else:
-        raise Exception("Cannot write to file!")
+        raise 
 
 
 
@@ -83,10 +85,10 @@ def main():
         print('Done                 ')
 
     files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
-    init_output(path)
+    make_output_folder(path)
 
     print(f"Transforming files: ")
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor(initializer=init_output, initargs=(OutputHandler.OUTPUT_FOLDER,)) as executor:
         results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
         # _ = [executor.submit(transform_helper, file) for file in files_to_transform]
 
