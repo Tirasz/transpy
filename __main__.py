@@ -16,6 +16,24 @@ parser.add_argument('-i', '--inline',          dest='mode',    action='store_con
 parser.add_argument('-o', '--overwrite',       dest='ow',      action='store_const', const="Y",      default=None,   help="automatically overwrite files, when not transforming inline")
 
 
+def onerror(func, path, exc_info):
+    """
+    Error handler for ``shutil.rmtree``.
+
+    If the error is due to an access error (read only file)
+    it attempts to add write permission and then retries.
+
+    If the error is for another reason it re-raises the error.
+    
+    Usage : ``shutil.rmtree(path, onerror=onerror)``
+    """
+    import stat
+    # Is the error an access error?
+    if not os.access(path, os.W_OK):
+        os.chmod(path, stat.S_IWUSR)
+        func(path)
+    else:
+        raise Exception("Cannot write to file!")
 
 def transform_helper(file):
     tr = Transformer()
@@ -27,7 +45,7 @@ def make_copy(schizo, newPath):
     path = schizo[0]
     if path.is_dir():
         if newPath.exists():
-            shutil.rmtree(newPath)
+            shutil.rmtree(newPath, onerror=onerror)
         schizo[0] = shutil.copytree(path, newPath)
     else:
         schizo[0] = shutil.copy(path,newPath)
