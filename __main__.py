@@ -57,11 +57,12 @@ def _test_main(path, max_workers):
     print("RUNNING IN TEST MODE")
     
     start_time = time.monotonic()
-    mem = max(memory_usage((_test_helper, (path, max_workers), {})))
+    #mem = max(memory_usage((_test_helper, (path, max_workers), {})))
+    _test_helper(path, max_workers)
     end_time = time.monotonic()
 
     TEST_DATA["runtime_s"] = timedelta(seconds=end_time - start_time).total_seconds()
-    TEST_DATA["max_memory_MiB"] = mem
+    TEST_DATA["max_memory_MiB"] = None
 
 def _write_test_data(project):
     import json
