@@ -23,6 +23,9 @@ from .analyzer import Analyzer
 from .transformer import Transformer
 from .utils import OutputHandler
 
+def transform_helper(file):
+    tr = Transformer()
+    tr.transform(file)
 
 def init_output(default_path):
     if not config["OUTPUT"].getboolean("AllowOutput"):

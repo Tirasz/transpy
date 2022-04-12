@@ -1,6 +1,6 @@
 import ast
 from copy import deepcopy
-from analyzer import Transformer, init_output
+from analyzer import Transformer, init_output, transform_helper
 import os, glob
 import argparse
 import shutil
@@ -35,9 +35,7 @@ def onerror(func, path, exc_info):
     else:
         raise Exception("Cannot write to file!")
 
-def transform_helper(file):
-    tr = Transformer()
-    tr.transform(file)
+
 
 def make_copy(schizo, newPath):
     prompt = "Overwriting" if newPath.exists() else "Creating"
@@ -88,9 +86,9 @@ def main():
     init_output(path)
 
     print(f"Transforming files: ")
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor() as executor:
         results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
-
+        # _ = [executor.submit(transform_helper, file) for file in files_to_transform]
 
 if __name__ == "__main__":
     main()
