@@ -7,9 +7,9 @@ import glob
 
 
 PROJECTS_PATH_BASE = Path("E:/TRANSPY/projects")
-PROJECTS = ["big_files"]
+PROJECTS = ["discord.py", "django", "pylint", "pandas", "keras", "InstaPy"]
 TRY_THREADS = [1,2,4,6,12]
-SAMPLE_SIZE = 1
+SAMPLE_SIZE = 3
 TEST_DATA_FOLDER = Path("E:/TRANSPY/transpy/test-data")
 CLOC_COMMAND = 'E:\TRANSPY\cloc.exe'
 
@@ -37,7 +37,6 @@ def get_size(start_path):
     return total_size
 
 
-
 if __name__ == '__main__':
     cloc_data = {}
     size_data = {}
@@ -58,6 +57,8 @@ if __name__ == '__main__':
 
     test_files = [f for f in TEST_DATA_FOLDER.rglob('*.json')]
 
+
+    # Need to add cloc and size data to json files 
     for file in test_files:
         with open(file, 'r') as f:
             data = json.loads(f.read())
