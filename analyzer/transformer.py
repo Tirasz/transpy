@@ -140,7 +140,7 @@ class Transformer(ast.NodeTransformer):
                         comments[token.start[0]] = token.string
 
         # Writing the (transformed) file
-        with open(file, "w") as out:
+        with open(file, "w", encoding='utf-8-sig') as out:
             i = 0
             while i < len(src_lines):
                 if i in self.results.keys():
@@ -173,7 +173,7 @@ class Transformer(ast.NodeTransformer):
                 i += 1
 
         # Checking for SyntaxErrors in the transformed file   
-        with open(file, "r") as f:
+        with open(file, "r", encoding='utf-8-sig') as f:
             new_lines = f.read()
             f.seek(0)
             newlines = f.readlines()
@@ -182,7 +182,7 @@ class Transformer(ast.NodeTransformer):
             ast.parse(new_lines)
         except SyntaxError as err:
             self.log(f"REVERTING {file}: SyntaxError: {err.msg} - line({err.lineno})")
-            with open(file, "w") as f:
+            with open(file, "w", encoding='utf-8-sig') as f:
                 f.writelines(src_lines)
             return
 
@@ -194,6 +194,6 @@ class Transformer(ast.NodeTransformer):
             diff = difflib.context_diff(src_lines, newlines, fromfile= str(file), tofile= str(file))
             diffile = (OutputHandler.OUTPUT_FOLDER / 'diffs' / f'{os.path.basename(file)}-diffs.diff').resolve()
 
-            with open(diffile, 'w') as f:
+            with open(diffile, 'w', encoding='utf-8-sig') as f:
                 f.writelines(diff)
             
