@@ -6,4 +6,5 @@ asd.py
 __pycache__/
 .vscode/
 test-data
+mprofile_*
 
