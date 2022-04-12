@@ -26,7 +26,9 @@ from .utils import OutputHandler
 def transform_helper(file):
     tr = Transformer()
     tr.transform(file)
+    return (tr.visited_nodes, len(tr.results.keys()))
 
+    
 # Needed for ProcessPoolExecutor init, since new processes dont get the static variable
 def init_output(path):
     OutputHandler.OUTPUT_FOLDER = path

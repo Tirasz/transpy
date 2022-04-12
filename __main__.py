@@ -1,6 +1,7 @@
 import ast
 from copy import deepcopy
 from analyzer import Transformer, make_output_folder, transform_helper, init_output
+from analyzer.utils import OutputHandler
 import os, glob
 import argparse
 import shutil
@@ -10,14 +11,76 @@ import threading
 from tqdm import tqdm
 import time
 
-from analyzer.utils import OutputHandler
 
 parser = argparse.ArgumentParser(description="Analyzes and transforms python projects.")
 parser.add_argument("path", metavar='PATH', type=str, nargs=1, help="path to the directory / python file")
 parser.add_argument('-i', '--inline',          dest='mode',    action='store_const', const="inline", default="copy", help='transform inline (default makes a copy)')
 parser.add_argument('-o', '--overwrite',       dest='ow',      action='store_const', const="Y",      default=None,   help="automatically overwrite files, when not transforming inline")
+parser.add_argument('-t', '--test',            dest='test',   action='store_const', const=True,      default=False,   help="run in test mode, provides additional info on runtime and memory usage, etc.")
+parser.add_argument('-mt','--max-threads',dest='max_threads', const=None, default=None, type=int, help='maximum number of threads to use', nargs=1)
+parser.add_argument('-p','--p-name',dest='proj_name', const=None, default=None, type=str, help='name of the project, used to label test data', nargs=1)
 
 
+TEST_DATA = {
+    "project_size_MiB" : 0, 
+    "no_files" : 0,
+    "cloc_py": {},
+    "no_nodes_visited" : 0,
+    "no_nodes_transformed" : 0,
+    "runtime_s" : 0,
+    "max_memory_MiB" : 0,
+    "max_workers": 0,
+    "project": ''
+}
+
+
+
+def _test_helper(path, _max_workers):
+    global TEST_DATA
+    files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
+
+    print(f"Transforming files: ")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=_max_workers, initializer=init_output, initargs=(OutputHandler.OUTPUT_FOLDER,)) as executor:
+        results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
+
+    TEST_DATA["no_files"] = len(files_to_transform)
+    TEST_DATA["max_workers"] = _max_workers if _max_workers is not None else 12
+    for res in results:
+        TEST_DATA["no_nodes_visited"] += res[0]
+        TEST_DATA["no_nodes_transformed"] += res[1]
+
+
+def _test_main(path, max_workers):
+    from datetime import timedelta
+    from memory_profiler import memory_usage
+    global TEST_DATA
+    print("RUNNING IN TEST MODE")
+    
+    start_time = time.monotonic()
+    mem = max(memory_usage((_test_helper, (path, max_workers), {})))
+    end_time = time.monotonic()
+
+    TEST_DATA["runtime_s"] = timedelta(seconds=end_time - start_time).total_seconds()
+    TEST_DATA["max_memory_MiB"] = mem
+
+def _write_test_data(project):
+    import json
+    n = 1
+    TEST_DATA_BASE = Path(__file__).parent.resolve() / 'test-data'
+
+    if not TEST_DATA_BASE.exists():
+        print(f"Creating {TEST_DATA_BASE} for test data.")
+        os.mkdir(TEST_DATA_BASE)
+    
+    testdatapath = (TEST_DATA_BASE / f'TEST_DATA_{project}({n}).json').resolve()
+    while testdatapath.exists():
+        n += 1
+        testdatapath = (TEST_DATA_BASE / f'TEST_DATA_{project}({n}).json').resolve()
+    
+    print(f"Writing test data in: {testdatapath}")
+    with open(testdatapath, "w") as f:
+        json.dump(TEST_DATA, f, indent=4)
+    
 def onerror(func, path, exc_info):
     """
     Error handler for ``shutil.rmtree``.
@@ -55,10 +118,14 @@ def main():
     path = Path(args.path[0]).resolve()
     files_to_transform = []
     ow = args.ow
+    test_mode = args.test
+    max_threads = int(args.max_threads[0]) if args.max_threads is not None else None
+    # DEFAULT max_workers = 12
+    # MAX max_workers = 61
+    p_name = args.proj_name[0]
 
     if not path.exists():
         parser.error("Given path does not exist!")
-
 
     if args.mode == "copy":
         newPath = (path.parent / f"transformed-{path.parts[-1]}")
@@ -84,13 +151,21 @@ def main():
         path = path[0]
         print('Done                 ')
 
-    files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
     make_output_folder(path)
 
+    if test_mode:
+        if not p_name:
+            p_name = "unknown"
+        TEST_DATA["project"] = p_name
+        _test_main(path, max_threads)
+        _write_test_data(p_name)
+        return
+    
+    files_to_transform = [f for f in path.rglob('*.py')] if path.is_dir() else [path]
     print(f"Transforming files: ")
-    with concurrent.futures.ProcessPoolExecutor(initializer=init_output, initargs=(OutputHandler.OUTPUT_FOLDER,)) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_threads, initializer=init_output, initargs=(OutputHandler.OUTPUT_FOLDER,)) as executor:
         results = list(tqdm(executor.map(transform_helper, files_to_transform), total=len(files_to_transform)))
-        # _ = [executor.submit(transform_helper, file) for file in files_to_transform]
+
 
 if __name__ == "__main__":
     main()

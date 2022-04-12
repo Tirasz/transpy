@@ -5,4 +5,5 @@ transformed.py
 asd.py
 __pycache__/
 .vscode/
+test-data
 
