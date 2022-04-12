@@ -55,7 +55,8 @@ class Transformer(ast.NodeTransformer):
         self.visit_recursively = config["MAIN"].getboolean("VisitBodiesRecursively")
         self.preserve_comments = config["MAIN"].getboolean("PreserveComments")
         self.logger = OutputHandler("transformer.log") if config["OUTPUT"].getboolean("AllowTransformerLogs") else None
-        self.differ = OutputHandler("diffs.diff") if config["OUTPUT"].getboolean("GenerateDiffs") else None
+        #self.differ = OutputHandler("diffs.diff") if  else None
+        self.generate_diffs = config["OUTPUT"].getboolean("GenerateDiffs")
         self.visited_nodes = 0
 
     def log(self, text):
@@ -172,23 +173,27 @@ class Transformer(ast.NodeTransformer):
                 i += 1
 
         # Checking for SyntaxErrors in the transformed file   
-        error = None
         with open(file, "r") as f:
-            try:
-                ast.parse(f.read())
-            except SyntaxError as err:
-                error = err
+            new_lines = f.read()
+            f.seek(0)
+            newlines = f.readlines()
 
-        if error: # Error was found, reverting to original, with message
+        try:
+            ast.parse(new_lines)
+        except SyntaxError as err:
+            self.log(f"REVERTING {file}: SyntaxError: {err.msg} - line({err.lineno})")
             with open(file, "w") as f:
-                self.log(f"SyntaxError in transformed '{file}': {error.msg} - line({error.lineno}) ---> REVERTING")
                 f.writelines(src_lines)
             return
 
-        if self.differ is not None:
-            with open(file, "r") as f:
-                new_lines = f.readlines()
 
-            diff = difflib.context_diff(src_lines, new_lines, fromfile= str(file), tofile= str(file))
-            self.differ.writelines(diff)
+        if self.generate_diffs and OutputHandler.OUTPUT_FOLDER:
+            import os
+            from pathlib import Path
+        
+            diff = difflib.context_diff(src_lines, newlines, fromfile= str(file), tofile= str(file))
+            diffile = (OutputHandler.OUTPUT_FOLDER / 'diffs' / f'{os.path.basename(file)}-diffs.diff').resolve()
+
+            with open(diffile, 'w') as f:
+                f.writelines(diff)
             

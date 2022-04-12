@@ -38,6 +38,7 @@ def init_output(default_path):
     print(f"Output directory is: '{output_dir}'")
     try:
         os.mkdir(output_dir)
+        os.mkdir(output_dir / 'diffs')
     except FileExistsError:
         print(f"Output directory already exists! Deleting..")
         shutil.rmtree(output_dir)
