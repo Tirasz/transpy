@@ -123,7 +123,7 @@ def main():
     max_threads = int(args.max_threads[0]) if args.max_threads is not None else None
     # DEFAULT max_workers = 12
     # MAX max_workers = 61
-    p_name = args.proj_name[0]
+    
 
     if not path.exists():
         parser.error("Given path does not exist!")
@@ -155,6 +155,7 @@ def main():
     make_output_folder(path)
 
     if test_mode:
+        p_name = args.proj_name[0]
         if not p_name:
             p_name = "unknown"
         TEST_DATA["project"] = p_name
