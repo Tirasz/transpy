@@ -11,6 +11,7 @@ class SingletonPattern:
         self._guard = []
 
     def visit(self, node):
+        return False
         self.node = node
         match node:
             case ast.Compare(left = subject_node, ops = [ast.Is()], comparators = [ast.Constant()] ):
