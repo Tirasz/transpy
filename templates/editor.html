@@ -2,7 +2,82 @@
 <html lang="en">
 <head>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+<script>
 
+const option1 = 
+`if resp.status == 200:
+    return await resp.read()
+elif resp.status == 404:
+    return NotFound(resp, 'asset not found')
+elif resp.status == 403:
+    return Forbidden(resp, 'cannot retreive asset')
+elif resp.status == 418:
+    return Teapot(resp, 'asset is a teapot')
+else:
+    return HTTPException(resp, 'failed to get asset')
+`
+
+const option2 = 
+`if key == 37 or key == "ArrowLeft":
+    return "←"
+elif key == 38 or key == "ArrowUp":
+    return "↑"
+elif key == 39 or key == "ArrowRight":
+    return "→"
+elif key == 40 or key == "ArrowDown":
+    return "→"
+else: 
+    return "⥁"
+`
+
+
+const option3 =
+`if isinstance(data, dict):
+    copy = True
+elif (manager == "array" and isinstance(data, (np.ndarray, ExtensionArray)) and data.ndim==2):
+    copy = True
+else:
+    copy = False
+
+`
+
+const option4 = 
+`if isinstance(obj, Cat):
+    if obj.color == 'black' or obj.color == 'gray':
+        turn_around()
+    elif obj.color == 'orange' and obj.weight == 'a lot':
+        give_lasagne()
+    else:
+        ignore_cat()
+elif isinstance(obj, Dog):
+    if obj.color == 'black' or obj.color == 'gray':
+        give_pets()
+    elif obj.color == 'orange' and obj.weight == 'a lot':
+        give_treats()
+    else:
+        ignore_dog()
+`
+function getPreset(id){
+    //console.log(id);
+    switch(id){
+        case "op-1":
+            return option1;
+            break;
+        case "op-2":
+            return option2;
+            break;
+        case "op-3":
+            return option3;
+            break;
+        case "op-4":
+            return option4;
+            break;
+        default:
+            return "???";
+    }
+}
+
+</script>
 <title>ACE in Action</title>
 <style type="text/css" media="screen">
 
@@ -69,15 +144,15 @@
 <body>
     <div class="menu d-flex flex-row justify-content-between">
         <div class="d-flex flex-row justify-content-start align-items-center options-l">
-            <div class="button">Option 1</div>
-            <div class="button">Option 2</div>
+            <div class="button" id="op-1" onclick="setEditor(this.id)">Option 1</div>
+            <div class="button" id="op-2" onclick="setEditor(this.id)">Option 2</div>
         </div>
         <div class="d-flex flex-row justify-content-center align-items-center">
             <div id="" class="button">TRANSFORM</div>
         </div>
         <div class="d-flex flex-row justify-content-start align-items-center options-r">
-            <div class="button">Option 3</div>
-            <div class="button">Option 4</div>
+            <div class="button" id="op-3" onclick="setEditor(this.id)">Option 3</div>
+            <div class="button" id="op-4" onclick="setEditor(this.id)">Option 4</div>
         </div>
     </div>
     
@@ -99,6 +174,11 @@
     var editor2 = ace.edit("editor2");
     editor2.setTheme("ace/theme/monokai");
     editor2.session.setMode("ace/mode/python");
+
+    function setEditor(clicked_id){
+        editor1.setValue(getPreset(clicked_id))
+    }
+
 </script>
 </body>
 </html>
