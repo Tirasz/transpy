@@ -14,9 +14,17 @@ import time
 
 from flask import Flask
 from flask import render_template
+from flask import request
+import json
+
 app = Flask(__name__)
 
-    
+
+@app.route('/transform', methods = ['POST'])
+def asd():
+    data = json.loads(request.data)
+    result = {'result': data['code']}
+    return json.dumps(result)
 
 @app.route('/')
 def editor():
