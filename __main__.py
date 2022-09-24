@@ -32,6 +32,8 @@ def asd():
         result = {'result': ast.unparse(tree)}
     except SyntaxError:
         result = {'result': '#Invalid syntax in source code!'}
+    except UnicodeDecodeError:
+        result = {'result': '#Invalid characters in source code!'}
 
 
     
