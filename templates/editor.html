@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+<title>ACE in Action</title>
+<style type="text/css" media="screen">
+
+    :root{
+        --editor-bcg: rgb(39,40,34);
+        --editor-hgh: rgb(47,49,41);
+        --editor-drk: rgb(32,32,32);
+    }
+
+    body{
+        background-color: var(--editor-bcg);
+    }
+
+
+    .editor { 
+        position: absolute;
+        top: 3.3em;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        max-width:50%;
+        border-top: 3px solid var(--editor-hgh);
+    }
+
+    .menu {
+        position: absolute;
+        top:0;
+        left: 0;
+        right:0;
+        padding:5px;
+    }
+
+    .options-l div{
+        margin-right: 5px;
+    }
+
+    .options-r div{
+        margin-left: 5px;
+    }
+    
+    .button{
+        border:2px solid var(--editor-hgh);
+        border-radius: 7%;
+        padding:1px;
+        color:white;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .button:hover{
+        background-color: var(--editor-drk);
+    }
+
+    .button:active{
+        background-color: var(--editor-hgh);
+        color: var(--editor-drk);
+    }
+
+
+
+
+</style>
+</head>
+<body>
+    <div class="menu d-flex flex-row justify-content-between">
+        <div class="d-flex flex-row justify-content-start align-items-center options-l">
+            <div class="button">Option 1</div>
+            <div class="button">Option 2</div>
+        </div>
+        <div class="d-flex flex-row justify-content-center align-items-center">
+            <div id="" class="button">TRANSFORM</div>
+        </div>
+        <div class="d-flex flex-row justify-content-start align-items-center options-r">
+            <div class="button">Option 3</div>
+            <div class="button">Option 4</div>
+        </div>
+    </div>
+    
+    <div id="editor1" class="editor">def funct():
+            something()
+    </div>
+    <div id="editor2" class="editor" style="left:50%;">def funct():
+    something_else()
+    </div>
+
+
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.11.1/ace.js" type="text/javascript" charset="utf-8"></script>
+<script>
+    var editor1 = ace.edit("editor1");
+    editor1.setTheme("ace/theme/monokai");
+    editor1.session.setMode("ace/mode/python");
+
+    var editor2 = ace.edit("editor2");
+    editor2.setTheme("ace/theme/monokai");
+    editor2.session.setMode("ace/mode/python");
+</script>
+</body>
+</html>
