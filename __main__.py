@@ -23,7 +23,18 @@ app = Flask(__name__)
 @app.route('/transform', methods = ['POST'])
 def asd():
     data = json.loads(request.data)
-    result = {'result': data['code']}
+
+    try:
+        tree = ast.parse(data['code'])
+        #print(ast.dump(tree))
+        transformer = Transformer()
+        transformer.visit(tree)
+        result = {'result': ast.unparse(tree)}
+    except SyntaxError:
+        result = {'result': '#Invalid syntax in source code!'}
+
+
+    
     return json.dumps(result)
 
 @app.route('/')
