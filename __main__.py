@@ -16,9 +16,9 @@ parser = argparse.ArgumentParser(description="Analyzes and transforms python pro
 parser.add_argument("path", metavar='PATH', type=str, nargs=1, help="path to the directory / python file")
 parser.add_argument('-i', '--inline',          dest='mode',    action='store_const', const="inline", default="copy", help='transform inline (default makes a copy)')
 parser.add_argument('-o', '--overwrite',       dest='ow',      action='store_const', const="Y",      default=None,   help="automatically overwrite files, when not transforming inline")
-parser.add_argument('-t', '--test',            dest='test',   action='store_const', const=True,      default=False,   help="run in test mode, provides additional info on runtime and memory usage, etc.")
-parser.add_argument('-mt','--max-threads',dest='max_threads', const=None, default=None, type=int, help='maximum number of threads to use', nargs=1)
-parser.add_argument('-p','--p-name',dest='proj_name', const=None, default=None, type=str, help='name of the project, used to label test data', nargs=1)
+# parser.add_argument('-t', '--test',            dest='test',   action='store_const', const=True,      default=False,   help="run in test mode, provides additional info on runtime and memory usage, etc.")
+# parser.add_argument('-mt','--max-threads',dest='max_threads', const=None, default=None, type=int, help='maximum number of threads to use', nargs=1)
+# parser.add_argument('-p','--p-name',dest='proj_name', const=None, default=None, type=str, help='name of the project, used to label test data', nargs=1)
 
 
 TEST_DATA = {
@@ -119,8 +119,8 @@ def main():
     path = Path(args.path[0]).resolve()
     files_to_transform = []
     ow = args.ow
-    test_mode = args.test
-    max_threads = int(args.max_threads[0]) if args.max_threads is not None else None
+    test_mode = False
+    max_threads = None
     # DEFAULT max_workers = 12
     # MAX max_workers = 61
     
